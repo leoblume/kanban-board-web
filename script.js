@@ -19,6 +19,7 @@ const tasksCollection = collection(db, "tasks");
 
 const kanbanBody = document.getElementById('kanban-body');
 const addRowButton = document.getElementById('add-row-button');
+const pdfUploadInput = document.getElementById('pdf-upload');
 const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const searchCounter = document.getElementById('search-counter');
@@ -26,6 +27,9 @@ const searchCounter = document.getElementById('search-counter');
 // --- Estado Local ---
 let tasks = [];
 let currentSearchTerm = '', currentMatchingIndices = [], searchResultPointer = -1;
+
+// --- Configuração do Worker da PDF.js ---
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//mozilla.github.io/pdf.js/build/pdf.worker.js`;
 
 // --- Renderização ---
 const renderAllTasks = (tasksToRender) => {
@@ -72,11 +76,99 @@ onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
 });
 
 
+// --- Interpretador de PDF e Lógica de Upload ---
+const parsePdfAndCreateMultipleTasks = async (text) => {
+    console.log("Texto extraído do PDF para depuração. Verifique se o texto corresponde ao PDF.");
+
+    // A pdf.js pode adicionar espaços extras. Usamos \s+ para lidar com isso.
+    const lines = text.split(/\s*\n\s*/).map(line => line.trim()).filter(line => line.length > 0);
+    const records = [];
+
+    // Regex para identificar uma linha de OS. Mais flexível com espaços.
+    const osLineRegex = /^(\d{5})\s+(.+?)\s+PRO\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})$/;
+    
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        
+        // Tentativa de corrigir nomes de clientes que quebram de linha
+        let nextIndex = i + 1;
+        while (nextIndex < lines.length && !/^\d{5}/.test(lines[nextIndex]) && !/Total OSs/.test(lines[nextIndex]) && !lines[nextIndex].includes('PRO')) {
+            line += " " + lines[nextIndex].trim();
+            nextIndex++;
+        }
+
+        const match = line.match(osLineRegex);
+
+        if (match) {
+            records.push({
+                os: match[1].trim(),
+                client: match[2].trim(),
+                prevEntr: match[5].split(' ')[0]
+            });
+            i = nextIndex - 1; // Pula as linhas já processadas
+        }
+    }
+    
+    console.log("Registros extraídos:", records);
+
+    if (records.length === 0) {
+        alert("Nenhuma OS encontrada no formato esperado. Verifique o console para depurar o texto extraído do PDF.");
+        return;
+    }
+
+    const batch = writeBatch(db);
+    let currentOrder = tasks.length;
+    records.forEach(record => {
+        const newDocRef = doc(collection(db, "tasks"));
+        batch.set(newDocRef, {
+            clientName: record.client, osNumber: `OS: ${record.os}`, order: currentOrder++,
+            statuses: [
+                { id: 'compras', label: 'Compras', state: 'state-pending', date: '' }, { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
+                { id: 'impressao', label: 'Impressão', state: 'state-pending', date: '' }, { id: 'acabamento', label: 'Acabamento', state: 'state-pending', date: '' },
+                { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' }, { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
+                { id: 'entrega', label: 'Entrega', state: 'state-pending', date: record.prevEntr }
+            ]
+        });
+    });
+
+    try {
+        await batch.commit();
+        alert(`${records.length} tarefa(s) importada(s) com sucesso do PDF!`);
+    } catch (error) {
+        console.error("Erro ao salvar tarefas em lote:", error);
+        alert("Falha ao salvar as tarefas importadas. Verifique o console.");
+    }
+};
+
+const handlePdfUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const loadingTask = pdfjsLib.getDocument(URL.createObjectURL(file));
+    loadingTask.promise.then(async (pdf) => {
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            // Junta os itens de texto com espaço e as linhas com quebra de linha
+            fullText += textContent.items.map(item => item.str).join(" ") + "\n";
+        }
+        parsePdfAndCreateMultipleTasks(fullText);
+    }).catch(error => {
+        console.error("Erro ao ler o arquivo PDF:", error);
+        alert("Não foi possível processar este arquivo PDF.");
+    });
+    event.target.value = null;
+};
+
+
 // --- Lógica de Eventos ---
+
+pdfUploadInput.addEventListener('change', handlePdfUpload);
 
 addRowButton.addEventListener('click', async () => {
     const newOrder = tasks.length;
-    const newTaskData = {
+    await addDoc(tasksCollection, {
         clientName: "Novo Cliente", osNumber: "OS: Nova", order: newOrder,
         statuses: [
             { id: 'compras', label: 'Compras', state: 'state-pending', date: '' }, { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
@@ -84,13 +176,7 @@ addRowButton.addEventListener('click', async () => {
             { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' }, { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
             { id: 'entrega', label: 'Entrega', state: 'state-pending', date: '' }
         ]
-    };
-    try {
-        await addDoc(tasksCollection, newTaskData);
-    } catch (error) {
-        console.error("Erro ao adicionar nova tarefa: ", error);
-        alert("Falha ao adicionar tarefa. Verifique o console.");
-    }
+    });
 });
 
 kanbanBody.addEventListener('click', async (event) => {
@@ -161,7 +247,6 @@ kanbanBody.addEventListener('dragover', (e) => {
         else kanbanBody.insertBefore(draggingElement, afterElement);
     }
 });
-// AQUI ESTÁ A ÚNICA DECLARAÇÃO DA FUNÇÃO
 function getDragAfterElement(container, y) {
     const draggableElements = [...container.querySelectorAll('.kanban-row:not(.dragging)')];
     return draggableElements.reduce((closest, child) => {
