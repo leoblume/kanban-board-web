@@ -43,15 +43,6 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     color: var(--text-muted);
     font-weight: 500;
 }
-.import-button {
-    display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
-    font-size: 16px; font-weight: 500; background-color: var(--green-color);
-    color: white; border: none; border-radius: 8px; cursor: pointer;
-    text-decoration: none; transition: background-color 0.2s;
-    margin: 0 12px;
-}
-.import-button:hover { background-color: #157347; }
-
 .kanban-table { min-width: 1200px; }
 .kanban-header, .kanban-row {
     display: grid;
@@ -75,6 +66,8 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .cell { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; }
 .cell-drag-handle, .cell-actions { flex-direction: row; }
 .cell-client { flex-direction: column; align-items: flex-start; }
+
+/* MODIFICADO: Estilos específicos para OS e Cliente */
 .cell-client input {
     border: none; background: transparent; width: 100%;
     padding: 2px 0; border-radius: 4px; 
@@ -90,6 +83,7 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     font-weight: 400;
     color: var(--text-muted);
 }
+
 .status-control { display: flex; align-items: center; gap: 8px; }
 .status-label-mobile { display: none; }
 .status-date-input { width: 60px; padding: 3px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; text-align: center; }
@@ -128,4 +122,28 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     .cell-drag-handle { position: absolute; top: 12px; left: 16px; }
     .cell-actions { position: absolute; top: 12px; right: 12px; }
     .cell-client { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
+}
+
+/* ... (todo o seu CSS anterior) ... */
+
+/* NOVO: Estilo para o botão de importação */
+.import-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: var(--green-color); /* Verde para indicar uma ação de importação */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none; /* Remove o sublinhado do link */
+    transition: background-color 0.2s;
+    margin: 0 12px;
+}
+
+.import-button:hover {
+    background-color: #157347; /* Um verde mais escuro */
 }

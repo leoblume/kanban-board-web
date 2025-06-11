@@ -19,7 +19,6 @@ const tasksCollection = collection(db, "tasks");
 
 const kanbanBody = document.getElementById('kanban-body');
 const addRowButton = document.getElementById('add-row-button');
-const txtUploadInput = document.getElementById('txt-upload');
 const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const searchCounter = document.getElementById('search-counter');
@@ -37,6 +36,7 @@ const renderAllTasks = (tasksToRender) => {
         rowElement.draggable = true;
         rowElement.id = task.id;
         
+        // MODIFICADO: A ordem dos inputs de OS e Cliente foi invertida
         rowElement.innerHTML = `
             <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
@@ -66,78 +66,12 @@ const renderAllTasks = (tasksToRender) => {
 onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
     tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderAllTasks(tasks);
+    console.log("Dados carregados/atualizados do Firebase.");
+}, (error) => {
+    console.error("Erro ao carregar dados: ", error);
 });
 
-// --- LÓGICA DO INTERPRETADOR DE TXT (Versão Robusta) ---
-const parseTxtAndCreateTasks = async (text) => {
-    const records = [];
-    // Divide o texto em blocos, usando uma ou mais linhas em branco como separador.
-    const blocks = text.trim().split(/\n\s*\n/);
-
-    for (const block of blocks) {
-        // Para cada bloco, tentamos encontrar os campos.
-        const osMatch = block.match(/OS:\s*(\d+)/);
-        const clientMatch = block.match(/CLIENTE:\s*(.+)/);
-        const prevEntMatch = block.match(/PREV\. ENT\.:\s*(\d{2}\/\d{2}\/\d{4})/);
-
-        // Só adiciona o registro se todos os 3 campos forem encontrados no bloco.
-        if (osMatch && clientMatch && prevEntMatch) {
-            records.push({
-                os: osMatch[1].trim(),
-                client: clientMatch[1].trim(),
-                prevEnt: prevEntMatch[1].trim()
-            });
-        }
-    }
-    
-    if (records.length === 0) {
-        alert("Nenhuma tarefa encontrada no arquivo .txt. Verifique se o formato está correto:\n\nOS: [numero]\nCLIENTE: [nome]\nPREV. ENT.: [data]");
-        return;
-    }
-
-    const batch = writeBatch(db);
-    let currentOrder = tasks.length;
-    records.forEach(record => {
-        const newDocRef = doc(collection(db, "tasks"));
-        batch.set(newDocRef, {
-            osNumber: `OS: ${record.os}`,
-            clientName: record.client,
-            order: currentOrder++,
-            statuses: [
-                { id: 'compras', label: 'Compras', state: 'state-pending', date: '' },
-                { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
-                { id: 'impressao', label: 'Impressão', state: 'state-pending', date: '' },
-                { id: 'acabamento', label: 'Acabamento', state: 'state-pending', date: '' },
-                { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' },
-                { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
-                { id: 'entrega', label: 'Entrega', state: 'state-pending', date: record.prevEntr }
-            ]
-        });
-    });
-
-    try {
-        await batch.commit();
-        alert(`${records.length} tarefa(s) importada(s) com sucesso!`);
-    } catch (error) {
-        console.error("Erro ao salvar tarefas em lote:", error);
-        alert("Falha ao salvar as tarefas importadas.");
-    }
-};
-
-const handleTxtUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        parseTxtAndCreateTasks(e.target.result);
-    };
-    reader.readAsText(file);
-    event.target.value = null; // Permite o upload do mesmo arquivo novamente
-};
-
-// --- LÓGICA DE EVENTOS PRINCIPAIS ---
-txtUploadInput.addEventListener('change', handleTxtUpload);
+// --- Lógica de Eventos ---
 
 addRowButton.addEventListener('click', async () => {
     const newOrder = tasks.length;
