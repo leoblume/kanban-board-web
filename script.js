@@ -17,6 +17,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const tasksCollection = collection(db, "tasks");
 
+// --- Elementos do DOM ---
 const kanbanBody = document.getElementById('kanban-body');
 const addRowButton = document.getElementById('add-row-button');
 const pdfUploadInput = document.getElementById('pdf-upload');
@@ -31,7 +32,7 @@ let currentSearchTerm = '', currentMatchingIndices = [], searchResultPointer = -
 // --- Configuração do Worker da PDF.js ---
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//mozilla.github.io/pdf.js/build/pdf.worker.js`;
 
-// --- Renderização ---
+// --- Função Principal de Renderização ---
 const renderAllTasks = (tasksToRender) => {
     kanbanBody.innerHTML = '';
     tasksToRender.forEach(task => {
@@ -65,54 +66,31 @@ const renderAllTasks = (tasksToRender) => {
     });
 };
 
-// --- Carregamento em Tempo Real ---
-onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
-    tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderAllTasks(tasks);
-    console.log("Dados carregados/atualizados do Firebase.");
-}, (error) => {
-    console.error("Erro ao carregar dados: ", error);
-    alert("Não foi possível conectar ao banco de dados. Verifique as regras de segurança do Firebase e o console para erros.");
-});
-
-
-// --- Interpretador de PDF e Lógica de Upload ---
+// --- Interpretador de PDF ---
 const parsePdfAndCreateMultipleTasks = async (text) => {
-    console.log("Texto extraído do PDF para depuração. Verifique se o texto corresponde ao PDF.");
-
-    // A pdf.js pode adicionar espaços extras. Usamos \s+ para lidar com isso.
-    const lines = text.split(/\s*\n\s*/).map(line => line.trim()).filter(line => line.length > 0);
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const records = [];
-
-    // Regex para identificar uma linha de OS. Mais flexível com espaços.
     const osLineRegex = /^(\d{5})\s+(.+?)\s+PRO\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})$/;
-    
+
     for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
+        let currentLineText = lines[i];
         
-        // Tentativa de corrigir nomes de clientes que quebram de linha
         let nextIndex = i + 1;
         while (nextIndex < lines.length && !/^\d{5}/.test(lines[nextIndex]) && !/Total OSs/.test(lines[nextIndex]) && !lines[nextIndex].includes('PRO')) {
-            line += " " + lines[nextIndex].trim();
+            currentLineText += " " + lines[nextIndex].trim();
             nextIndex++;
         }
 
-        const match = line.match(osLineRegex);
-
+        const match = currentLineText.match(osLineRegex);
         if (match) {
-            records.push({
-                os: match[1].trim(),
-                client: match[2].trim(),
-                prevEntr: match[5].split(' ')[0]
-            });
-            i = nextIndex - 1; // Pula as linhas já processadas
+            records.push({ os: match[1].trim(), client: match[2].trim(), prevEntr: match[5].split(' ')[0] });
+            i = nextIndex - 1;
         }
     }
     
-    console.log("Registros extraídos:", records);
-
     if (records.length === 0) {
-        alert("Nenhuma OS encontrada no formato esperado. Verifique o console para depurar o texto extraído do PDF.");
+        alert("Nenhuma OS encontrada no PDF. Verifique o console para depurar.");
+        console.log("Texto extraído para depuração:\n", text);
         return;
     }
 
@@ -133,10 +111,10 @@ const parsePdfAndCreateMultipleTasks = async (text) => {
 
     try {
         await batch.commit();
-        alert(`${records.length} tarefa(s) importada(s) com sucesso do PDF!`);
+        alert(`${records.length} tarefa(s) importada(s) com sucesso!`);
     } catch (error) {
         console.error("Erro ao salvar tarefas em lote:", error);
-        alert("Falha ao salvar as tarefas importadas. Verifique o console.");
+        alert("Falha ao salvar as tarefas importadas.");
     }
 };
 
@@ -150,22 +128,16 @@ const handlePdfUpload = (event) => {
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
-            // Junta os itens de texto com espaço e as linhas com quebra de linha
             fullText += textContent.items.map(item => item.str).join(" ") + "\n";
         }
         parsePdfAndCreateMultipleTasks(fullText);
     }).catch(error => {
         console.error("Erro ao ler o arquivo PDF:", error);
-        alert("Não foi possível processar este arquivo PDF.");
     });
     event.target.value = null;
 };
 
-
 // --- Lógica de Eventos ---
-
-pdfUploadInput.addEventListener('change', handlePdfUpload);
-
 addRowButton.addEventListener('click', async () => {
     const newOrder = tasks.length;
     await addDoc(tasksCollection, {
@@ -178,6 +150,8 @@ addRowButton.addEventListener('click', async () => {
         ]
     });
 });
+
+pdfUploadInput.addEventListener('change', handlePdfUpload);
 
 kanbanBody.addEventListener('click', async (event) => {
     const button = event.target.closest('button');
@@ -295,3 +269,13 @@ const handleSearch = () => {
 searchButton.addEventListener('click', handleSearch);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
 searchInput.addEventListener('input', clearSearchState);
+
+// --- Inicialização ---
+onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
+    tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderAllTasks(tasks);
+    console.log("Dados carregados/atualizados do Firebase.");
+}, (error) => {
+    console.error("Erro ao carregar dados: ", error);
+    alert("Não foi possível conectar ao banco de dados. Verifique as regras de segurança do Firebase e o console para erros.");
+});
