@@ -111,3 +111,23 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     .cell-actions { position: absolute; top: 12px; right: 12px; }
     .cell-client { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
 }
+
+.upload-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: var(--green-color); /* Verde para destacar */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-left: 12px;
+}
+
+.upload-button:hover {
+    background-color: #157347;
+}
