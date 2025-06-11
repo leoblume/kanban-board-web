@@ -19,17 +19,13 @@ const tasksCollection = collection(db, "tasks");
 
 const kanbanBody = document.getElementById('kanban-body');
 const addRowButton = document.getElementById('add-row-button');
-const pdfUploadInput = document.getElementById('pdf-upload');
 const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const searchCounter = document.getElementById('search-counter');
 
-// --- Estado Local ---
+// --- Estado Local (Espelho do DB) ---
 let tasks = [];
 let currentSearchTerm = '', currentMatchingIndices = [], searchResultPointer = -1;
-
-// --- Configuração do Worker da PDF.js ---
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//mozilla.github.io/pdf.js/build/pdf.worker.js`;
 
 // --- Renderização ---
 const renderAllTasks = (tasksToRender) => {
@@ -72,83 +68,11 @@ onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
     console.log("Dados carregados/atualizados do Firebase.");
 }, (error) => {
     console.error("Erro ao carregar dados: ", error);
+    alert("Não foi possível conectar ao banco de dados. Verifique as regras de segurança do Firebase e o console para erros.");
 });
 
-// --- LÓGICA DO INTERPRETADOR DE PDF ---
-const parseAndCreateTasksFromPdf = async (text) => {
-    const lines = text.split('\n').map(line => line.trim().replace(/\s+/g, ' ')).filter(Boolean);
-    const records = [];
-    const osLineRegex = /^(\d{5})\s+(.+?)\s+PRO\s+.*?(\d{2}\/\d{2}\/\d{4})$/;
+// --- Lógica de Eventos ---
 
-    for (const line of lines) {
-        const match = line.match(osLineRegex);
-        if (match) {
-            records.push({
-                os: match[1],
-                client: match[2],
-                prevEntr: match[3]
-            });
-        }
-    }
-    
-    if (records.length === 0) {
-        alert("Nenhuma tarefa no formato esperado foi encontrada no PDF. Verifique se o relatório está correto.");
-        return;
-    }
-
-    const batch = writeBatch(db);
-    let currentOrder = tasks.length;
-    records.forEach(record => {
-        const newDocRef = doc(collection(db, "tasks"));
-        batch.set(newDocRef, {
-            clientName: record.client, osNumber: `OS: ${record.os}`, order: currentOrder++,
-            statuses: [
-                { id: 'compras', label: 'Compras', state: 'state-pending', date: '' },
-                { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
-                { id: 'impressao', label: 'Impressão', state: 'state-pending', date: '' },
-                { id: 'acabamento', label: 'Acabamento', state: 'state-pending', date: '' },
-                { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' },
-                { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
-                { id: 'entrega', label: 'Entrega', state: 'state-pending', date: record.prevEntr }
-            ]
-        });
-    });
-
-    try {
-        await batch.commit();
-        alert(`${records.length} tarefa(s) importada(s) com sucesso!`);
-    } catch (error) {
-        console.error("Erro ao salvar tarefas em lote:", error);
-        alert("Falha ao salvar as tarefas importadas.");
-    }
-};
-
-const handlePdfUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const fileReader = new FileReader();
-    fileReader.onload = async () => {
-        const typedarray = new Uint8Array(fileReader.result);
-        try {
-            const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
-            let fullText = "";
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                fullText += textContent.items.map(item => item.str).join(" ") + "\n";
-            }
-            parseAndCreateTasksFromPdf(fullText);
-        } catch (error) {
-            console.error("Erro ao ler PDF:", error);
-        }
-    };
-    fileReader.readAsArrayBuffer(file);
-    event.target.value = null;
-};
-
-// --- LÓGICA DE EVENTOS PRINCIPAIS ---
-pdfUploadInput.addEventListener('change', handlePdfUpload);
 addRowButton.addEventListener('click', async () => {
     const newOrder = tasks.length;
     await addDoc(tasksCollection, {
