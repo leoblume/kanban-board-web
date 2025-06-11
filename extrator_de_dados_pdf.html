@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Extrator de Dados PDF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button { margin: 10px 0; padding: 10px; }
+    pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+  <h1>Extrator de OS / Cliente / Prev. Ent. de PDF</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <button onclick="extractData()">Extrair Dados</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    async function extractData() {
+      const fileInput = document.getElementById('pdfFile');
+      const file = fileInput.files[0];
+      const output = document.getElementById('output');
+      if (!file) {
+        alert("Selecione um arquivo PDF.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const typedarray = new Uint8Array(reader.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+        let fullText = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(item => item.str);
+          fullText += strings.join(' ') + '\n';
+        }
+
+        const regex = /(\d{5})\s+([A-Z\s\.\-\(\)]+?)\s+PRO\s+\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+(\d{2}\/\d{2}\/\d{4})/g;
+        let match;
+        let lines = [];
+
+        while ((match = regex.exec(fullText)) !== null) {
+          const os = match[1];
+          const cliente = match[2].trim();
+          const prevEnt = match[3];
+          lines.push(`OS: ${os}\nCLIENTE: ${cliente}\nPREV. ENT.: ${prevEnt}\n`);
+        }
+
+        if (lines.length === 0) {
+          output.textContent = "Nenhuma entrada encontrada.";
+          return;
+        }
+
+        const resultText = lines.join('\n');
+        output.textContent = resultText;
+
+        // Geração do .txt com data atual no nome
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0]; // yyyy-mm-dd
+        
+	//nomeacao do .txt
+	const fileName = `${dateStr}.txt`;
+
+        const blob = new Blob([resultText], { type: "text/plain;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+
+</body>
+</html>
