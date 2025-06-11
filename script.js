@@ -68,18 +68,26 @@ onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
     renderAllTasks(tasks);
 });
 
-// --- LÓGICA DO INTERPRETADOR DE TXT ---
+// --- LÓGICA DO INTERPRETADOR DE TXT (Versão Robusta) ---
 const parseTxtAndCreateTasks = async (text) => {
     const records = [];
-    const regex = /OS:\s*(\d+)\s*\nCLIENTE:\s*(.+?)\s*\nPREV\. ENT\.:\s*(\d{2}\/\d{2}\/\d{4})/g;
-    let match;
+    // Divide o texto em blocos, usando uma ou mais linhas em branco como separador.
+    const blocks = text.trim().split(/\n\s*\n/);
 
-    while ((match = regex.exec(text)) !== null) {
-        records.push({
-            os: match[1].trim(),
-            client: match[2].trim(),
-            prevEnt: match[3].trim()
-        });
+    for (const block of blocks) {
+        // Para cada bloco, tentamos encontrar os campos.
+        const osMatch = block.match(/OS:\s*(\d+)/);
+        const clientMatch = block.match(/CLIENTE:\s*(.+)/);
+        const prevEntMatch = block.match(/PREV\. ENT\.:\s*(\d{2}\/\d{2}\/\d{4})/);
+
+        // Só adiciona o registro se todos os 3 campos forem encontrados no bloco.
+        if (osMatch && clientMatch && prevEntMatch) {
+            records.push({
+                os: osMatch[1].trim(),
+                client: clientMatch[1].trim(),
+                prevEnt: prevEntMatch[1].trim()
+            });
+        }
     }
     
     if (records.length === 0) {
@@ -125,7 +133,7 @@ const handleTxtUpload = (event) => {
         parseTxtAndCreateTasks(e.target.result);
     };
     reader.readAsText(file);
-    event.target.value = null;
+    event.target.value = null; // Permite o upload do mesmo arquivo novamente
 };
 
 // --- LÓGICA DE EVENTOS PRINCIPAIS ---
