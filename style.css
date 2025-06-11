@@ -123,3 +123,27 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     .cell-actions { position: absolute; top: 12px; right: 12px; }
     .cell-client { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
 }
+
+/* ... (todo o seu CSS anterior) ... */
+
+/* NOVO: Estilo para o botão de importação */
+.import-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: var(--green-color); /* Verde para indicar uma ação de importação */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none; /* Remove o sublinhado do link */
+    transition: background-color 0.2s;
+    margin: 0 12px;
+}
+
+.import-button:hover {
+    background-color: #157347; /* Um verde mais escuro */
+}
