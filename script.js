@@ -23,7 +23,7 @@ const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const searchCounter = document.getElementById('search-counter');
 
-// --- Estado Local (Espelho do DB) ---
+// --- Estado Local ---
 let tasks = [];
 let currentSearchTerm = '', currentMatchingIndices = [], searchResultPointer = -1;
 
@@ -36,11 +36,12 @@ const renderAllTasks = (tasksToRender) => {
         rowElement.draggable = true;
         rowElement.id = task.id;
         
+        // MODIFICADO: A ordem dos inputs de OS e Cliente foi invertida
         rowElement.innerHTML = `
             <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
-                <input type="text" class="client-name-input" placeholder="Nome do Cliente" value="${task.clientName}">
                 <input type="text" class="os-number-input" placeholder="Nº OS" value="${task.osNumber}">
+                <input type="text" class="client-name-input" placeholder="Nome do Cliente" value="${task.clientName}">
             </div>
             ${task.statuses.map(s => `
                 <div class="cell">
@@ -68,7 +69,6 @@ onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
     console.log("Dados carregados/atualizados do Firebase.");
 }, (error) => {
     console.error("Erro ao carregar dados: ", error);
-    alert("Não foi possível conectar ao banco de dados. Verifique as regras de segurança do Firebase e o console para erros.");
 });
 
 // --- Lógica de Eventos ---
