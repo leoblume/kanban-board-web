@@ -37,15 +37,12 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     cursor: pointer; color: var(--text-muted);
 }
 #search-button:hover { background-color: #f1f3f5; }
-
-/* NOVO: Estilo para o contador */
 #search-counter {
     margin-left: 12px;
     font-size: 14px;
     color: var(--text-muted);
     font-weight: 500;
 }
-
 .kanban-table { min-width: 1200px; }
 .kanban-header, .kanban-row {
     display: grid;
@@ -56,7 +53,6 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .kanban-header { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 12px; }
 .kanban-row:last-child { border-bottom: none; }
 .kanban-row:hover { background-color: #fcfcfd; }
-
 .kanban-header > .header-cell:nth-child(1), .kanban-row > .cell:nth-child(1),
 .kanban-header > .header-cell:nth-child(2), .kanban-row > .cell:nth-child(2) {
     position: sticky; z-index: 2;
@@ -66,9 +62,7 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .kanban-header > .header-cell:nth-child(2), .kanban-row > .cell:nth-child(2) {
     left: 56px; border-right: 1px solid var(--border-color); padding-right: 16px;
 }
-
 .kanban-row.highlight { background-color: var(--highlight-color); }
-
 .cell { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; }
 .cell-drag-handle, .cell-actions { flex-direction: row; }
 .cell-client { flex-direction: column; align-items: flex-start; }
@@ -78,9 +72,8 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 }
 .cell-client input.os-number-input { font-size: 13px; color: var(--text-muted); }
 .cell-client input:focus { background-color: #f0f3ff; }
-
 .status-control { display: flex; align-items: center; gap: 8px; }
-.status-label, .status-label-mobile { display: none; }
+.status-label-mobile { display: none; }
 .status-date-input { width: 60px; padding: 3px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; text-align: center; }
 .status-button {
     width: 24px; height: 24px; border: 2px solid var(--border-color); background-color: #fff;
@@ -92,7 +85,6 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .state-done::before { content: '✓'; line-height: 20px; font-size: 18px; }
 .state-blocked { background-color: var(--red-color); border-color: var(--red-color); color: white; }
 .state-blocked::before { content: 'X'; line-height: 20px; font-size: 16px; }
-
 .cell-actions { gap: 4px; }
 .action-button {
     background: none; border: none; color: #adb5bd; font-size: 22px; cursor: pointer;
@@ -104,7 +96,6 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 16px; font-weight: 500;
     background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer;
 }
-
 @media (max-width: 992px) {
     .kanban-board { overflow-x: hidden; }
     .kanban-table { min-width: 100%; }
@@ -119,25 +110,4 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     .cell-drag-handle { position: absolute; top: 12px; left: 16px; }
     .cell-actions { position: absolute; top: 12px; right: 12px; }
     .cell-client { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
-}
-
-/* Estilo para o botão de upload de PDF */
-.upload-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    font-size: 16px;
-    font-weight: 500;
-    background-color: var(--green-color); /* Cor verde para destacar */
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-left: 12px;
-}
-
-.upload-button:hover {
-    background-color: #157347;
 }
