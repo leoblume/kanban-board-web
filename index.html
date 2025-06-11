@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadro Kanban Local</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="kanban-board">
+        <div class="board-title-header">
+            <h1>Quadro de Gestão Kanban</h1>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Pesquisar Cliente ou OS...">
+                <button id="search-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+                </button>
+                <!-- NOVO: Contador para os resultados da pesquisa -->
+                <span id="search-counter"></span>
+            </div>
+            <button id="add-row-button" class="add-row-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                <span>Adicionar</span>
+            </button>
+        </div>
+        <div class="kanban-table">
+            <header class="kanban-header">
+                <div class="header-cell"></div>
+                <div class="header-cell">Cliente / OS.</div>
+                <div class="header-cell">Compras</div>
+                <div class="header-cell">Arte Final</div>
+                <div class="header-cell">Impressão</div>
+                <div class="header-cell">Acabamento</div>
+                <div class="header-cell">Fat.</div>
+                <div class="header-cell">Instalação</div>
+                <div class="header-cell">Entrega</div>
+                <div class="header-cell">Ações</div>
+            </header>
+            <main id="kanban-body"></main>
+        </div>
+    </div>
+    <script src="script.js" defer></script>
+</body>
+</html>
