@@ -11,11 +11,14 @@
     input, button { margin: 10px 0; padding: 10px; font-size: 16px; }
     button { background: #198754; color: white; border: none; border-radius: 5px; cursor: pointer; }
     button:hover { background: #157347; }
+    #resultArea { background: #fff; padding: 16px; border-radius: 8px; margin-top: 20px; box-shadow: 0 0 10px #ccc; }
+    li { margin: 6px 0; }
   </style>
 </head>
 <body>
   <h1>Importar Tarefas via PDF</h1>
   <input type="file" id="pdfFile" accept="application/pdf">
   <button onclick="extractData()">Importar Dados</button>
+  <div id="resultArea"></div>
 </body>
 </html>
