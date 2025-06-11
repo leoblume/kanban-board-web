@@ -1,3 +1,25 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
+  authDomain: "kanban-board-92ce7.firebaseapp.com",
+  projectId: "kanban-board-92ce7",
+  storageBucket: "kanban-board-92ce7.firebasestorage.app",
+  messagingSenderId: "494809291125",
+  appId: "1:494809291125:web:17f9eefa4287d39174db3c"
+};
+
+// Passo 3: Inicializar o Firebase e o Firestore
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const tasksCollection = collection(db, "tasks");
+
+// O resto do seu código, agora usando Firebase...
+const kanbanBody = document.getElementById('kanban-body');
+const addRowButton = document.getElementById('add-row-button');
+const searchInput = document.getElementById('search-input');
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Elementos do DOM ---
     const kanbanBody = document.getElementById('kanban-body');
@@ -223,3 +245,22 @@ kanbanBody.addEventListener('click', (event) => {
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 });
+
+let tasks = []; // Este array será um espelho local do DB para a pesquisa
+
+const renderAllTasks = (tasksToRender) => {
+    kanbanBody.innerHTML = '';
+    tasksToRender.forEach(task => {
+        const rowElement = document.createElement('div');
+        rowElement.className = 'kanban-row';
+        rowElement.draggable = true;
+        rowElement.id = task.id;
+        // ... (resto do seu código de renderização do HTML)
+    });
+
+// NOVO: Carregar dados em tempo real do Firebase
+onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
+    tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderAllTasks(tasks);
+});
+
