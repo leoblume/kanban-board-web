@@ -77,32 +77,20 @@ body.print-mode { background: #fff !important; }
 .print-mode .kanban-board { max-width: 100%; box-shadow: none; border: none; }
 .print-mode .board-title-header, .print-mode .header-placeholder { display: none !important; }
 .print-mode .kanban-table { min-width: auto; overflow: visible; }
-
-.print-mode .kanban-header, .print-mode .kanban-row {
-    font-size: 9pt;
-    grid-template-columns: 3.5fr repeat(8, 1fr); 
-    gap: 4px;
-    padding: 6px 4px;
-    align-items: start; /* CORREÇÃO CRÍTICA PDF: Alinha as células no topo, permitindo que a linha cresça */
-    border-bottom: 1px solid #ccc;
-}
+.print-mode .kanban-header, .print-mode .kanban-row { font-size: 9pt; grid-template-columns: 3.5fr repeat(8, 1fr); gap: 4px; padding: 6px 4px; align-items: start; border-bottom: 1px solid #ccc; }
 .print-mode .kanban-header { position: static !important; }
 .print-mode .cell:first-child, .print-mode .header-cell:first-child, .print-mode .cell:last-child, .print-mode .header-cell:last-child { display: none; }
 
-/* CORREÇÃO CRÍTICA PDF: Faz os inputs se comportarem como blocos de texto com quebra de linha */
-.print-mode .cell-client input {
-    height: auto;           /* Permite que a altura do input cresça conforme o conteúdo */
-    white-space: normal;    /* Permite a quebra de linha do texto */
-    word-break: break-word; /* Força a quebra de palavras muito longas para evitar overflow */
-    line-height: 1.3;       /* Melhora a legibilidade do texto quebrado em várias linhas */
-    padding: 0;
-}
+/* Esconde os inputs originais durante a impressão */
+.print-mode .cell-client input { display: none; }
+/* Estiliza o DIV temporário que será criado via JS */
+.pdf-client-info { display: flex; align-items: baseline; gap: 8px; }
+.pdf-os { font-weight: 600; font-size: 10pt; flex-shrink: 0; }
+.pdf-client { font-size: 9pt; color: #333; word-break: break-word; }
 
-.print-mode .os-number-input { font-size: 10pt; font-weight: 600; margin-bottom: 2px; }
-.print-mode .client-name-input { font-size: 9pt; color: #333; }
 .print-mode .status-control { gap: 4px; }
 .print-mode .status-button { width: 14px; height: 14px; }
 .print-mode .status-button::before { font-size: 9pt !important; line-height: 12px !important; }
-.print-mode .status-date-input { font-size: 8pt; width: 40px; padding: 2px; }
+.print-mode .status-date-input { font-size: 8pt; width: 40px; padding: 2px; border: none; background-color: transparent; text-align: center; }
 
 @media (max-width: 992px) { /* etc... */ }
