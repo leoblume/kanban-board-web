@@ -1,3 +1,5 @@
+--- START OF FILE style.css ---
+
 :root {
     --primary-color: #0d6efd;
     --green-color: #198754;
@@ -8,7 +10,7 @@
     --text-color: #212529;
     --text-muted: #6c757d;
     --shadow-color: rgba(0, 0, 0, 0.05);
-    --hover-color: #e7f1ff; /* NOVO: Azul claro para o hover */
+    --hover-color: #e7f1ff; 
 }
 
 html { 
@@ -18,20 +20,24 @@ html {
 body {
     font-family: 'Poppins', sans-serif;
     background-color: var(--light-gray);
-    margin: 0; 
-    padding: 20px; 
+    margin: 0; /* ALTERAÇÃO: Removida a margem para o layout de altura total funcionar */
+    padding: 0; /* ALTERAÇÃO: Removido o padding para o layout de altura total funcionar */
     color: var(--text-color); 
     user-select: none;
+    height: 100vh; /* ALTERAÇÃO: Garante que o body ocupe a altura total da tela */
+    overflow: hidden; /* ALTERAÇÃO: Impede a rolagem do body */
 }
 
 .kanban-board {
-    max-width: 95%; 
+    max-width: 100%; /* ALTERAÇÃO: Ocupa a largura total */
+    height: 100vh; /* ALTERAÇÃO: Ocupa a altura total da tela */
     margin: 0 auto; 
     background-color: #fff;
-    border-radius: 12px; 
-    padding: 24px; 
     box-shadow: 0 8px 30px var(--shadow-color);
-    /* overflow-x: auto; */ /* <<<<<<< CORREÇÃO 1: REMOVIDO DAQUI. Este era o erro principal. */
+    padding: 24px; /* ALTERAÇÃO: Adicionado padding */
+    box-sizing: border-box; /* ALTERAÇÃO: Garante que o padding não aumente o tamanho total */
+    display: flex; /* ALTERAÇÃO: Habilitado o flexbox */
+    flex-direction: column; /* ALTERAÇÃO: Itens empilhados verticalmente */
 }
 
 .board-title-header {
@@ -41,6 +47,7 @@ body {
     margin-bottom: 24px; 
     flex-wrap: wrap; 
     gap: 1rem;
+    flex-shrink: 0; /* ALTERAÇÃO: Impede que este header encolha */
 }
 
 h1 { 
@@ -94,7 +101,8 @@ h1 {
 
 .kanban-table { 
     min-width: 1300px; 
-    overflow-x: auto; /* <<<<<<< CORREÇÃO 1: MOVIDO PARA CÁ. Agora a rolagem é só na tabela. */
+    overflow: auto; /* ALTERAÇÃO: Rolagem horizontal E vertical agora controlada aqui */
+    flex-grow: 1; /* ALTERAÇÃO: Faz a tabela ocupar o espaço restante */
 }
 
 .kanban-header, .kanban-row {
@@ -127,9 +135,10 @@ h1 {
     margin: -4px -6px;
 }
 
+/* ALTERAÇÃO 2: Efeito de hover no menu dos setores */
 .header-link:hover {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: #f1f3f5; /* Fundo cinza claro */
+    color: var(--primary-color); /* Mantém o texto azul */
 }
 
 .kanban-row:last-child { 
@@ -137,7 +146,7 @@ h1 {
 }
 
 .kanban-row:hover { 
-    background-color: var(--hover-color); /* <<<<<<< CORREÇÃO 2: Nova cor de hover, mais visível */
+    background-color: var(--hover-color);
 }
 
 /* Colunas laterais fixas */
@@ -329,9 +338,30 @@ h1 {
     background-color: #157347; 
 }
 
+/* ALTERAÇÃO 3: Estilos para a página de setor */
+.sector-task-card {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.sector-task-dates {
+    display: flex;
+    gap: 20px;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.date-label .date-value {
+    color: var(--text-color);
+    font-weight: 500;
+}
+/* Fim da alteração 3 */
+
+
 @media (max-width: 992px) {
+    body { overflow: auto; } /* Libera a rolagem no mobile */
+    .kanban-board { height: auto; } /* Altura automática no mobile */
     .kanban-board { overflow-x: hidden; }
-    .kanban-table { min-width: 100%; overflow-x: visible; }
+    .kanban-table { min-width: 100%; overflow-x: visible; overflow-y: visible; }
     .kanban-header { display: none; }
     .kanban-row {
         display: flex; 
