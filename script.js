@@ -47,7 +47,8 @@ searchInput.addEventListener('input', clearSearchState);
 window.addEventListener('scroll', handleStickyHeader); window.addEventListener('resize', handleStickyHeader);
 function handleStickyHeader() { const header = document.querySelector('.kanban-header'); const placeholder = document.querySelector('.header-placeholder'); const kanbanTable = document.querySelector('.kanban-table'); if (!header || !placeholder || !kanbanTable) return; const scrollTriggerPoint = kanbanTable.offsetTop; if (window.pageYOffset > scrollTriggerPoint) { if (!header.classList.contains('is-sticky')) { header.classList.add('is-sticky'); placeholder.style.display = 'block'; } const rect = kanbanTable.getBoundingClientRect(); placeholder.style.height = `${header.offsetHeight}px`; header.style.width = `${rect.width}px`; header.style.left = `${rect.left}px`; } else { if (header.classList.contains('is-sticky')) { header.classList.remove('is-sticky'); header.style.width = ''; header.style.left = ''; placeholder.style.display = 'none'; } } }
 
-// --- LÓGICA DE EXPORTAÇÃO PARA PDF (REESCRITA) ---
+
+// --- LÓGICA DE EXPORTAÇÃO PARA PDF ---
 const exportToPDF = async () => {
     const contentToPrint = document.querySelector('.kanban-board');
     const originalButtonText = exportPdfButton.querySelector('span').textContent;
@@ -56,44 +57,41 @@ const exportToPDF = async () => {
     exportPdfButton.querySelector('span').textContent = 'Exportando...';
 
     // --- ETAPA DE PREPARAÇÃO ---
-    // Cria os elementos de texto temporários para um render mais confiável
     document.querySelectorAll('.kanban-row').forEach(row => {
+        // Prepara OS e Cliente
         const clientCell = row.querySelector('.cell-client');
         const osInput = row.querySelector('.os-number-input');
         const clientInput = row.querySelector('.client-name-input');
-
         if (clientCell && osInput && clientInput) {
             const tempDiv = document.createElement('div');
             tempDiv.className = 'pdf-client-info';
-
-            const osSpan = document.createElement('span');
-            osSpan.className = 'pdf-os';
-            osSpan.textContent = osInput.value;
-
-            const clientSpan = document.createElement('span');
-            clientSpan.className = 'pdf-client';
-            clientSpan.textContent = clientInput.value;
-
-            tempDiv.appendChild(osSpan);
-            tempDiv.appendChild(clientSpan);
+            tempDiv.innerHTML = `<span class="pdf-os">${osInput.value}</span><span class="pdf-client">${clientInput.value}</span>`;
             clientCell.appendChild(tempDiv);
         }
+
+        // Prepara as Datas
+        row.querySelectorAll('.status-control').forEach(control => {
+            const dateInput = control.querySelector('.status-date-input');
+            if (dateInput && dateInput.value) {
+                const tempSpan = document.createElement('span');
+                tempSpan.className = 'pdf-date-text';
+                tempSpan.textContent = dateInput.value;
+                control.insertBefore(tempSpan, dateInput); // Insere o span antes do input
+            }
+        });
     });
 
     document.body.classList.add('print-mode');
 
     try {
         const canvas = await html2canvas(contentToPrint, {
-            scale: 2,
-            useCORS: true,
-            logging: false
+            scale: 2, useCORS: true, logging: false
         });
 
         const pdf = new jspdf.jsPDF('p', 'mm', 'a4'); 
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
         const canvasAspectRatio = canvas.height / canvas.width;
-        
         let finalPdfWidth = pdfWidth - 20;
         let finalPdfHeight = finalPdfWidth * canvasAspectRatio;
         let position = 0;
@@ -116,9 +114,9 @@ const exportToPDF = async () => {
         alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
     } finally {
         // --- ETAPA DE LIMPEZA (CRUCIAL) ---
-        // Restaura o estado original da página
         document.body.classList.remove('print-mode');
         document.querySelectorAll('.pdf-client-info').forEach(div => div.remove());
+        document.querySelectorAll('.pdf-date-text').forEach(span => span.remove());
         
         exportPdfButton.disabled = false;
         exportPdfButton.querySelector('span').textContent = originalButtonText;
