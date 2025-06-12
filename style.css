@@ -105,17 +105,17 @@ h1 {
     border-bottom: 1px solid var(--border-color);
 }
 
-/* MODIFICAÇÃO 1: Garante que o cabeçalho seja fixo no topo da página ao rolar */
+/* MODIFICAÇÃO PRINCIPAL: Fixação do cabeçalho da tabela no topo da página */
 .kanban-header {
     position: sticky;
-    top: 0; /* Fixa no topo do viewport */
-    z-index: 10; /* Garante que fique acima das linhas que rolam */
-    background-color: #ffffff; /* Fundo sólido para não ver o conteúdo por baixo */
+    top: 0; /* Fixa no topo do viewport (janela do navegador) */
+    z-index: 10; /* Garante que fique acima do conteúdo que rola */
+    background-color: #ffffff; /* Fundo sólido para não ver o conteúdo rolando por baixo */
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
     font-size: 12px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.04); /* Sombra sutil para dar elevação */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 }
 
 .header-link {
@@ -127,10 +127,9 @@ h1 {
     margin: -4px -6px;
 }
 
-/* MODIFICAÇÃO 2: Ajuste na cor de hover para não usar texto branco */
 .header-link:hover {
-    background-color: var(--hover-color); /* Fundo azul claro */
-    color: var(--primary-color); /* Texto continua azul */
+    background-color: var(--hover-color);
+    color: var(--primary-color); 
 }
 
 .kanban-row:last-child { 
@@ -147,7 +146,7 @@ h1 {
     position: sticky;
     left: 0;
     z-index: 2;
-    background-color: inherit; 
+    background-color: inherit; /* Herda a cor da linha para manter o efeito de hover */
 }
 
 .kanban-header > *:nth-child(2), 
@@ -160,7 +159,7 @@ h1 {
     padding-right: 16px;
 }
 
-/* Garante que o fundo das células do header seja branco por padrão para o sticky funcionar bem */
+/* Garante que o fundo das células do header seja branco para o sticky funcionar corretamente */
 .kanban-header > .header-cell, .kanban-header > a.header-link { 
     background-color: #fff; 
 }
