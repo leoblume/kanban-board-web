@@ -8,29 +8,11 @@
     --text-color: #212529;
     --text-muted: #6c757d;
     --shadow-color: rgba(0, 0, 0, 0.05);
+    --hover-color: #e7f1ff; /* NOVO: Azul claro para o hover */
 }
 
 html { 
-    scroll-behavior: smooth; 
-}
-
-body {
-    font-family: 'Poppins', sans-serif;
-    background-color: var(--light-gray);
-    margin: 0; 
-    padding: 20px; 
-    color: var(--text-color); 
-    user-select: none;
-}
-
-.kanban-board {
-    max-width: 95%; 
-    margin: 0 auto; 
-    background-color: #fff;
-    border-radius: 12px; 
-    padding: 24px; 
-    box-shadow: 0 8px 30px var(--shadow-color);
-    overflow-x: auto; /* Mantém a rolagem horizontal apenas para o quadro */
+ REMOVIDO DAQUI */
 }
 
 .board-title-header {
@@ -49,50 +31,22 @@ h1 {
     flex-grow: 1; 
 }
 
-.search-container { 
-    display: flex; 
-    align-items: center; 
-    margin: 0 10px; 
-}
+/* ... (O restante do CSS para search, buttons, etc., permanece o mesmo) ... */
 
-#search-input {
-    width: 250px; 
-    padding: 8px 12px; 
-    font-size: 14px;
-    border: 1px solid var(--border-color); 
-    border-right: none;
-    border-radius: 8px 0 0 8px; 
-    background-color: var(--light-gray);
-}
+#search-input { width: 250px; padding: 8px 12px; font-size: 14px; border: 1px solid var(--border-color); border-right: none; border-radius: 8px 0 0 8px; background-color: var(--light-gray); }
+#search-input:focus { outline: 1px solid var(--primary-color); z-index: 2; background-color: #fff; }
+#search-button { padding: 8px 12px; border: 1px solid var(--border-color); background-color: #fff; border-radius: 0 8px 8px 0; cursor: pointer; color: var(--text-muted); }
+#search-button:hover { background-color: #f1f3f5; }
+#search-counter { margin-left: 12px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
+.add-row-button, .import-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 16px; font-weight: 500; color: white; border: none; border-radius: 8px; cursor: pointer; }
+.add-row-button { background-color: var(--primary-color); }
+.import-button { background-color: var(--green-color); text-decoration: none; transition: background-color 0.2s; margin: 0 12px; }
+.import-button:hover { background-color: #157347; }
 
-#search-input:focus { 
-    outline: 1px solid var(--primary-color); 
-    z-index: 2; 
-    background-color: #fff; 
-}
-
-#search-button {
-    padding: 8px 12px; 
-    border: 1px solid var(--border-color);
-    background-color: #fff; 
-    border-radius: 0 8px 8px 0;
-    cursor: pointer; 
-    color: var(--text-muted);
-}
-
-#search-button:hover { 
-    background-color: #f1f3f5; 
-}
-
-#search-counter { 
-    margin-left: 12px; 
-    font-size: 14px; 
-    color: var(--text-muted); 
-    font-weight: 500; 
-}
 
 .kanban-table { 
-    min-width: 1300px; 
+    min-width: 1300px;
+    overflow-x: auto; /* <<<<<<< CORREÇÃO 1: MOVIDO PARA CÁ */
 }
 
 .kanban-header, .kanban-row {
@@ -135,241 +89,68 @@ h1 {
 }
 
 .kanban-row:hover { 
-    background-color: #f8f9fa; /* Cor de hover um pouco mais visível */
+    background-color: var(--hover-blue-color); /* <<<<<<< CORREÇÃO 2: Nova cor de hover */
 }
 
-/* --- CORREÇÃO DE SINTAXE PARA COLUNAS FIXAS --- */
-/* Estas regras corrigem o bug do menu e do hover */
-
-/* Seleciona o primeiro filho (célula de arrastar) no header e na linha */
+/* Colunas laterais fixas */
 .kanban-header > *:nth-child(1), 
 .kanban-row > .cell:nth-child(1) {
     position: sticky;
     left: 0;
     z-index: 2;
-    background-color: inherit; /* Herda a cor de fundo da linha (branco, cinza no hover, amarelo no highlight) */
+    background-color: inherit; /* Herda a cor do .kanban-row (branco, azul no hover, amarelo no highlight) */
 }
 
-/* Seleciona o segundo filho (célula Cliente/OS) no header e na linha */
 .kanban-header > *:nth-child(2), 
 .kanban-row > .cell:nth-child(2) {
     position: sticky;
-    left: 56px; /* 40px da primeira coluna + 16px de gap */
+    left: 56px;
     z-index: 2;
-    background-color: inherit; /* Herda a cor de fundo da linha */
+    background-color: inherit; /* Herda a cor do .kanban-row */
     border-right: 1px solid var(--border-color);
     padding-right: 16px;
 }
 
-/* Garante que o fundo das células do header seja branco quando não está no hover da linha */
+/* Garante que o fundo das células do header seja branco por padrão */
 .kanban-header > .header-cell, .kanban-header > a.header-link { 
     background-color: #fff; 
 }
-
-/* --- FIM DA CORREÇÃO DE SINTAXE --- */
 
 .kanban-row.highlight { 
     background-color: var(--highlight-color); 
 }
 
-.cell { 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    gap: 6px; 
-}
+/* ... (O restante do CSS para células, botões, etc., permanece o mesmo) ... */
 
-.cell-drag-handle, .cell-actions { 
-    flex-direction: row; 
-}
-
-.cell-client { 
-    flex-direction: column; 
-    align-items: flex-start; 
-}
-
-.cell-client input { 
-    border: none; 
-    background: transparent; 
-    width: 100%; 
-    padding: 2px 0; 
-    border-radius: 4px; 
-}
-
-.cell-client input:focus { 
-    background-color: #f0f3ff; 
-    padding-left: 4px; 
-}
-
-.cell-client .os-number-input { 
-    font-size: 16px; 
-    font-weight: 600; 
-    color: var(--text-color); 
-}
-
-.cell-client .client-name-input { 
-    font-size: 14px; 
-    font-weight: 400; 
-    color: var(--text-muted); 
-}
-
-.status-control { 
-    display: flex; 
-    align-items: center; 
-    gap: 8px; 
-}
-
-.status-label-mobile { 
-    display: none; 
-}
-
-.status-date-input { 
-    width: 60px; 
-    padding: 3px; 
-    border: 1px solid var(--border-color); 
-    border-radius: 4px; 
-    font-size: 13px; 
-    text-align: center; 
-}
-
-.status-button {
-    width: 24px; 
-    height: 24px; 
-    border: 2px solid var(--border-color); 
-    background-color: #fff;
-    cursor: pointer; 
-    border-radius: 6px; 
-    padding: 0;
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    flex-shrink: 0;
-    transition: all 0.2s ease-in-out;
-}
-
-.state-pending { 
-    border-color: var(--primary-color); 
-    border-radius: 50%; 
-}
-
-.state-in-progress { 
-    background-color: var(--primary-color); 
-    border-color: var(--primary-color); 
-    color: white; 
-}
-.state-in-progress::before { 
-    content: '...'; 
-    font-weight: 600; 
-    line-height: 12px; 
-    font-size: 16px; 
-}
-
-.state-done { 
-    background-color: var(--green-color); 
-    border-color: var(--green-color); 
-    color: white; 
-}
-.state-done::before { 
-    content: '✓'; 
-    line-height: 20px; 
-    font-size: 18px; 
-}
-
-.state-blocked { 
-    background-color: var(--red-color); 
-    border-color: var(--red-color); 
-    color: white; 
-}
-.state-blocked::before { 
-    content: 'X'; 
-    line-height: 20px; 
-    font-size: 16px; 
-}
-
-.cell-actions { 
-    gap: 4px; 
-}
-
-.action-button {
-    background: none; 
-    border: none; 
-    color: #adb5bd; 
-    font-size: 22px; 
-    cursor: pointer;
-    border-radius: 50%; 
-    width: 32px; 
-    height: 32px;
-    transition: background-color 0.2s, color 0.2s;
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-}
-
-.add-row-button, .import-button {
-    display: inline-flex; 
-    align-items: center; 
-    gap: 8px; 
-    padding: 10px 20px; 
-    font-size: 16px; 
-    font-weight: 500;
-    color: white; 
-    border: none; 
-    border-radius: 8px; 
-    cursor: pointer;
-}
-
-.add-row-button { 
-    background-color: var(--primary-color); 
-}
-
-.import-button { 
-    background-color: var(--green-color); 
-    text-decoration: none; 
-    transition: background-color 0.2s; 
-    margin: 0 12px; 
-}
-.import-button:hover { 
-    background-color: #157347; 
-}
+.cell { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; }
+.cell-drag-handle, .cell-actions { flex-direction: row; }
+.cell-client { flex-direction: column; align-items: flex-start; }
+.cell-client input { border: none; background: transparent; width: 100%; padding: 2px 0; border-radius: 4px; }
+.cell-client input:focus { background-color: #f0f3ff; padding-left: 4px; }
+.cell-client .os-number-input { font-size: 16px; font-weight: 600; color: var(--text-color); }
+.cell-client .client-name-input { font-size: 14px; font-weight: 400; color: var(--text-muted); }
+.status-control { display: flex; align-items: center; gap: 8px; }
+.status-label-mobile { display: none; }
+.status-date-input { width: 60px; padding: 3px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; text-align: center; }
+.status-button { width: 24px; height: 24px; border: 2px solid var(--border-color); background-color: #fff; cursor: pointer; border-radius: 6px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease-in-out; }
+.state-pending { border-color: var(--primary-color); border-radius: 50%; }
+.state-in-progress { background-color: var(--primary-color); border-color: var(--primary-color); color: white; }
+.state-in-progress::before { content: '...'; font-weight: 600; line-height: 12px; font-size: 16px; }
+.state-done { background-color: var(--green-color); border-color: var(--green-color); color: white; }
+.state-done::before { content: '✓'; line-height: 20px; font-size: 18px; }
+.state-blocked { background-color: var(--red-color); border-color: var(--red-color); color: white; }
+.state-blocked::before { content: 'X'; line-height: 20px; font-size: 16px; }
+.cell-actions { gap: 4px; }
+.action-button { background: none; border: none; color: #adb5bd; font-size: 22px; cursor: pointer; border-radius: 50%; width: 32px; height: 32px; transition: background-color 0.2s, color 0.2s; display: flex; align-items: center; justify-content: center; }
 
 @media (max-width: 992px) {
     .kanban-board { overflow-x: hidden; }
-    .kanban-table { min-width: 100%; }
+    .kanban-table { min-width: 100%; overflow-x: visible; }
     .kanban-header { display: none; }
-    .kanban-row {
-        display: flex; 
-        flex-direction: column; 
-        gap: 16px; 
-        padding: 20px;
-        border: 1px solid var(--border-color); 
-        border-radius: 10px; 
-        margin-bottom: 16px;
-        box-shadow: 0 4px 12px var(--shadow-color); 
-        position: relative;
-    }
-    .cell { 
-        flex-direction: row; 
-        width: 100%; 
-        justify-content: space-between; 
-    }
-    .status-label-mobile { 
-        display: inline; 
-        font-size: 16px; 
-        font-weight: 500; 
-    }
-    .cell-drag-handle { 
-        position: absolute; 
-        top: 12px; 
-        left: 16px; 
-    }
-    .cell-actions { 
-        position: absolute; 
-        top: 12px; 
-        right: 12px; 
-    }
-    .cell-client { 
-        border-bottom: 1px solid var(--border-color); 
-        padding-bottom: 16px; 
-    }
+    .kanban-row { display: flex; flex-direction: column; gap: 16px; padding: 20px; border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 16px; box-shadow: 0 4px 12px var(--shadow-color); position: relative; }
+    .cell { flex-direction: row; width: 100%; justify-content: space-between; }
+    .status-label-mobile { display: inline; font-size: 16px; font-weight: 500; }
+    .cell-drag-handle { position: absolute; top: 12px; left: 16px; }
+    .cell-actions { position: absolute; top: 12px; right: 12px; }
+    .cell-client { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
 }
