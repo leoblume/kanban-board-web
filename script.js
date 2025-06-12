@@ -74,8 +74,6 @@ function convertDateToSortable(dateStr) {
 }
 
 // --- Carregamento e Auto-Correção de Dados ---
-
-// Esta é a "fonte da verdade" para a estrutura de status.
 const canonicalStatuses = [
     { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' },
     { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' },
@@ -94,10 +92,8 @@ onSnapshot(q, (snapshot) => {
         let needsDBUpdate = false;
         const updates = {};
         
-        // Cópia dos dados para manipulação local segura
         let correctedData = { ...data };
 
-        // LÓGICA DE AUTO-CORREÇÃO (SELF-HEALING)
         const existingStatuses = correctedData.statuses || [];
         const healedStatuses = canonicalStatuses.map(canonical => {
             const existing = existingStatuses.find(s => s.id === canonical.id);
@@ -109,27 +105,25 @@ onSnapshot(q, (snapshot) => {
             };
         });
 
-        // Se a estrutura dos status foi corrigida, marcamos para salvar no banco.
         if (JSON.stringify(existingStatuses) !== JSON.stringify(healedStatuses)) {
             updates.statuses = healedStatuses;
-            correctedData.statuses = healedStatuses; // Atualiza a cópia local
+            correctedData.statuses = healedStatuses;
             needsDBUpdate = true;
         }
         
         if (correctedData.deliveryDate === undefined) {
             const deliveryDate = convertDateToSortable(healedStatuses.find(s => s.id === 'entrega').date);
             updates.deliveryDate = deliveryDate;
-            correctedData.deliveryDate = deliveryDate; // Atualiza a cópia local
+            correctedData.deliveryDate = deliveryDate;
             needsDBUpdate = true;
         }
         if (correctedData.order === undefined) {
             updates.order = 0;
-            correctedData.order = 0; // Atualiza a cópia local
+            correctedData.order = 0;
             needsDBUpdate = true;
         }
 
         if (needsDBUpdate) {
-            console.log(`Agendando auto-correção para a tarefa ${documentSnapshot.id}.`);
             const docRef = doc(db, "tasks", documentSnapshot.id);
             batch.update(docRef, updates);
             updatesNeeded++;
@@ -139,7 +133,6 @@ onSnapshot(q, (snapshot) => {
     });
 
     if (updatesNeeded > 0) {
-        console.log(`Enviando ${updatesNeeded} atualizações de auto-correção em lote...`);
         batch.commit().catch(err => console.error("Erro ao salvar auto-correção:", err));
     }
 
@@ -286,3 +279,38 @@ const handleSearch = () => {
 searchButton.addEventListener('click', handleSearch);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
 searchInput.addEventListener('input', clearSearchState);
+
+
+// --- CÓDIGO PARA HEADER FIXO ---
+window.addEventListener('scroll', handleStickyHeader);
+window.addEventListener('resize', handleStickyHeader); // Adicionado para recalcular ao redimensionar a janela
+
+function handleStickyHeader() {
+    const header = document.querySelector('.kanban-header');
+    const placeholder = document.querySelector('.header-placeholder');
+    const kanbanTable = document.querySelector('.kanban-table');
+    
+    if (!header || !placeholder || !kanbanTable) return;
+
+    const scrollTriggerPoint = kanbanTable.offsetTop;
+    
+    if (window.pageYOffset > scrollTriggerPoint) {
+        if (!header.classList.contains('is-sticky')) {
+            header.classList.add('is-sticky');
+            placeholder.style.display = 'block';
+        }
+        
+        const rect = kanbanTable.getBoundingClientRect();
+        placeholder.style.height = `${header.offsetHeight}px`;
+        header.style.width = `${rect.width}px`;
+        header.style.left = `${rect.left}px`;
+
+    } else {
+        if (header.classList.contains('is-sticky')) {
+            header.classList.remove('is-sticky');
+            header.style.width = '';
+            header.style.left = '';
+            placeholder.style.display = 'none';
+        }
+    }
+}
