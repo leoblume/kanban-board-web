@@ -23,7 +23,10 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 #search-button { padding: 8px 12px; border: 1px solid var(--border-color); background-color: #fff; border-radius: 0 8px 8px 0; cursor: pointer; color: var(--text-muted); }
 #search-button:hover { background-color: #f1f3f5; }
 #search-counter { margin-left: 12px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
-.kanban-table { min-width: 1300px; overflow-x: auto;}
+
+/* AJUSTE FINAL: Adiciona um pequeno padding à esquerda para a coluna 'Compras' não cortar */
+.kanban-table { min-width: 1300px; overflow-x: auto; padding-left: 5px; }
+
 .kanban-header, .kanban-row { display: grid; grid-template-columns: 40px 2.5fr repeat(8, 1fr) 80px; align-items: center; gap: 16px; padding: 12px 8px; border-bottom: 1px solid var(--border-color); }
 .kanban-header { background-color: #ffffff; font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 12px; }
 .header-link { text-decoration: none; color: var(--primary-color); transition: background-color 0.2s, color 0.2s; border-radius: 4px; padding: 4px 6px; margin: -4px -6px; }
@@ -76,22 +79,20 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 body.print-mode { background: #fff !important; }
 .print-mode .kanban-board { max-width: 100%; box-shadow: none; border: none; }
 .print-mode .board-title-header, .print-mode .header-placeholder { display: none !important; }
-.print-mode .kanban-table { min-width: auto; overflow: visible; }
+.print-mode .kanban-table { min-width: auto; overflow: visible; padding-left: 0; }
 .print-mode .kanban-header, .print-mode .kanban-row { font-size: 9pt; grid-template-columns: 3.5fr repeat(8, 1fr); gap: 4px; padding: 6px 4px; align-items: start; border-bottom: 1px solid #ccc; }
 .print-mode .kanban-header { position: static !important; }
 .print-mode .cell:first-child, .print-mode .header-cell:first-child, .print-mode .cell:last-child, .print-mode .header-cell:last-child { display: none; }
-
-/* Esconde os inputs originais durante a impressão */
-.print-mode .cell-client input,
-.print-mode .status-date-input { 
-    display: none; 
-}
-/* Estiliza os DIVs e SPANs temporários que serão criados via JS */
+.print-mode .cell-client input, .print-mode .status-date-input { display: none; }
 .pdf-client-info { display: flex; align-items: baseline; gap: 8px; }
 .pdf-os { font-weight: 600; font-size: 10pt; flex-shrink: 0; }
 .pdf-client { font-size: 9pt; color: #333; word-break: break-word; }
-.pdf-date-text { font-size: 8pt; text-align: center; width: 40px; }
+.pdf-date-text { font-size: 8pt; text-align: center; }
 
+/* AJUSTE FINAL: Alinha o conteúdo da célula de Entrega à esquerda no PDF */
+.print-mode .kanban-row .cell:nth-last-child(2) {
+    justify-content: flex-start;
+}
 .print-mode .status-control { gap: 4px; }
 .print-mode .status-button { width: 14px; height: 14px; }
 .print-mode .status-button::before { font-size: 9pt !important; line-height: 12px !important; }
