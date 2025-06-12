@@ -37,23 +37,50 @@
         </div>
 
         <div class="kanban-table">
-            <!-- MODIFICADO: Cabeçalho agora tem links e está fixo no topo -->
-            <header class="kanban-header">
-                <div class="header-cell"></div>
-                <div class="header-cell">Cliente / OS.</div>
-                <a href="setor.html?setor=compras&nome=Compras" class="header-cell header-link">Compras</a>
-                <a href="setor.html?setor=arte&nome=Arte Final" class="header-cell header-link">Arte Final</a>
-                <a href="setor.html?setor=impressao&nome=Impressão" class="header-cell header-link">Impressão</a>
-                <a href="setor.html?setor=acabamento&nome=Acabamento" class="header-cell header-link">Acabamento</a>
-                <a href="setor.html?setor=corte&nome=Corte" class="header-cell header-link">Corte</a>
-                <a href="setor.html?setor=faturamento&nome=Faturamento" class="header-cell header-link">Fat.</a>
-                <a href="setor.html?setor=instalacao&nome=Instalação" class="header-cell header-link">Instalação</a>
-                <div class="header-cell">Entrega</div>
-                <div class="header-cell">Ações</div>
-            </header>
+            
+            <!-- NOVO: Container para agrupar os cabeçalhos que ficarão fixos -->
+            <div class="sticky-header-wrapper">
+                
+                <!-- O menu de setores foi MOVIDO para DENTRO do novo container -->
+                <div class="sector-panels-menu">
+                    <span>Paineis por Setor:</span>
+                    <a href="setor.html?setor=compras&nome=Compras">Compras</a>
+                    <a href="setor.html?setor=arte&nome=Arte Final">Arte Final</a>
+                    <a href="setor.html?setor=impressao&nome=Impressão">Impressão</a>
+                    <a href="setor.html?setor=acabamento&nome=Acabamento">Acabamento</a>
+                    <a href="setor.html?setor=corte&nome=Corte">Corte</a>
+                    <a href="setor.html?setor=faturamento&nome=Faturamento">Faturamento</a>
+                    <a href="setor.html?setor=instalacao&nome=Instalação">Instalação</a>
+                </div>
+
+                <!-- O cabeçalho da tabela também fica DENTRO do novo container -->
+                <header class="kanban-header">
+                    <div class="header-cell"></div>
+                    <div class="header-cell">Cliente / OS.</div>
+                    <a href="setor.html?setor=compras&nome=Compras" class="header-cell header-link">Compras</a>
+                    <a href="setor.html?setor=arte&nome=Arte Final" class="header-cell header-link">Arte Final</a>
+                    <a href="setor.html?setor=impressao&nome=Impressão" class="header-cell header-link">Impressão</a>
+                    <a href="setor.html?setor=acabamento&nome=Acabamento" class="header-cell header-link">Acabamento</a>
+                    <a href="setor.html?setor=corte&nome=Corte" class="header-cell header-link">Corte</a>
+                    <a href="setor.html?setor=faturamento&nome=Faturamento" class="header-cell header-link">Fat.</a>
+                    <a href="setor.html?setor=instalacao&nome=Instalação" class="header-cell header-link">Instalação</a>
+                    <div class="header-cell">Entrega</div>
+                    <div class="header-cell">Ações</div>
+                </header>
+
+            </div> <!-- Fim do novo container -->
+
             <main id="kanban-body"></main>
         </div>
+    
+
+        
     </div>
+
+
+
+
+    
 
     <script type="module" src="script.js" defer></script>
 </body>
