@@ -1,5 +1,3 @@
---- START OF FILE setor.js ---
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
@@ -20,6 +18,7 @@ const taskListContainer = document.getElementById('tasks-list');
 const sectorTitleElement = document.getElementById('sector-title');
 const pageTitleElement = document.querySelector('title');
 
+// Obter o ID e o nome do setor a partir dos parâmetros da URL
 const urlParams = new URLSearchParams(window.location.search);
 const sectorId = urlParams.get('setor');
 const sectorName = urlParams.get('nome') || sectorId;
@@ -32,51 +31,30 @@ if (!sectorId) {
     loadSectorTasks();
 }
 
-function getDisplayDate(dateString) {
-    if (dateString && dateString.trim() !== '') {
-        return dateString;
-    }
-    const today = new Date();
-    const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    return `${day}/${month}`;
-}
-
-
 function renderTasks(tasksToRender) {
     if (tasksToRender.length === 0) {
         taskListContainer.innerHTML = '<p class="no-tasks-message">Nenhuma tarefa pendente para este setor no momento.</p>';
         return;
     }
 
-    taskListContainer.innerHTML = '';
+    taskListContainer.innerHTML = ''; // Limpa a lista
     tasksToRender.forEach(task => {
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
         if (!sectorStatus) return;
-        
-        const deliveryStatus = task.statuses.find(s => s.id === 'entrega');
-        
-        const sectorDisplayDate = getDisplayDate(sectorStatus.date);
-        const finalDisplayDate = getDisplayDate(deliveryStatus?.date || '');
 
         const taskElement = document.createElement('div');
         taskElement.className = 'sector-task-card';
         taskElement.dataset.docId = task.id;
 
         taskElement.innerHTML = `
-            <div class="sector-task-header">
-                <div class="sector-task-info">
-                    <span class="sector-task-os">${task.osNumber}</span>
-                    <span class="sector-task-client">${task.clientName}</span>
-                </div>
-                <div class="sector-task-action">
-                    <span>Marcar como Concluído:</span>
-                    <button class="status-button ${sectorStatus.state}" title="Clique para marcar como 'Concluído'"></button>
-                </div>
+            <div class="sector-task-info">
+                <span class="sector-task-os">${task.osNumber}</span>
+                <span class="sector-task-client">${task.clientName}</span>
+                <span class="sector-task-delivery">Entrega: ${task.deliveryDateDisplay || 'N/D'}</span>
             </div>
-            <div class="sector-task-dates">
-                <span class="date-label">Data Setor: <strong class="date-value">${sectorDisplayDate}</strong></span>
-                <span class="date-label">Entrega Final: <strong class="date-value">${finalDisplayDate}</strong></span>
+            <div class="sector-task-action">
+                <span>Marcar como Concluído:</span>
+                <button class="status-button ${sectorStatus.state}" title="Clique para marcar como 'Concluído'"></button>
             </div>
         `;
         taskListContainer.appendChild(taskElement);
@@ -84,19 +62,23 @@ function renderTasks(tasksToRender) {
 }
 
 function loadSectorTasks() {
+    // Ordena pela data de entrega, que foi adicionada no script.js principal
     const q = query(tasksCollection, orderBy("deliveryDate"));
 
     onSnapshot(q, (snapshot) => {
         const allTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        // Filtra as tarefas de acordo com as regras especificadas
         const filteredTasks = allTasks.filter(task => {
+            // Regra 1: A tarefa não pode ter NENHUM status bloqueado (vermelho)
             const isBlocked = task.statuses.some(s => s.state === 'state-blocked');
             if (isBlocked) {
                 return false;
             }
+
+            // Regra 2: O status específico deste setor deve existir e estar "em andamento" (azul)
             const sectorStatus = task.statuses.find(s => s.id === sectorId);
-            // Mostra apenas tarefas que NÃO estão concluídas ('state-done') para este setor
-            return sectorStatus && sectorStatus.state !== 'state-done';
+            return sectorStatus && sectorStatus.state === 'state-in-progress';
         });
 
         renderTasks(filteredTasks);
@@ -107,12 +89,10 @@ function loadSectorTasks() {
     });
 }
 
+// Event listener para marcar a tarefa como concluída
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
-
-    // Impede a ação se a tarefa já estiver concluída
-    if (button.classList.contains('state-done')) return;
 
     const card = button.closest('.sector-task-card');
     const docId = card.dataset.docId;
@@ -124,7 +104,7 @@ taskListContainer.addEventListener('click', async (event) => {
 
         const taskData = docSnap.data();
         const newStatuses = taskData.statuses.map(status => {
-            // ALTERAÇÃO: Ação simplificada para marcar APENAS como 'concluído'
+            // Ação permitida: Mudar o status APENAS para 'concluído'
             if (status.id === sectorId) {
                 return { ...status, state: 'state-done' };
             }
@@ -132,7 +112,7 @@ taskListContainer.addEventListener('click', async (event) => {
         });
 
         await updateDoc(docRef, { statuses: newStatuses });
-        // A UI se atualizará automaticamente graças ao onSnapshot, removendo o card da lista
+        // A UI se atualizará automaticamente graças ao onSnapshot
     } catch (error) {
         console.error("Erro ao atualizar o status: ", error);
         alert("Ocorreu um erro ao tentar atualizar a tarefa.");
