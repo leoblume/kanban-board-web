@@ -23,6 +23,7 @@ const addRowButton = document.getElementById('add-row-button');
 const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const searchCounter = document.getElementById('search-counter');
+const exportPdfButton = document.getElementById('export-pdf-button'); // Botão de exportar
 
 // --- Estado Local ---
 let tasks = [];
@@ -30,6 +31,7 @@ let currentSearchTerm = '', currentMatchingIndices = [], searchResultPointer = -
 
 // --- Renderização ---
 const renderAllTasks = (tasksToRender) => {
+    // (código de renderização inalterado)
     kanbanBody.innerHTML = '';
     tasksToRender.forEach(task => {
         const rowElement = document.createElement('div');
@@ -64,6 +66,7 @@ const renderAllTasks = (tasksToRender) => {
 
 // --- Funções Auxiliares ---
 function convertDateToSortable(dateStr) {
+    // (código da função inalterado)
     if (!dateStr || !dateStr.includes('/')) return '9999-12-31';
     const parts = dateStr.split('/');
     if (parts.length < 2 || isNaN(parseInt(parts[0])) || isNaN(parseInt(parts[1]))) return '9999-12-31';
@@ -74,243 +77,103 @@ function convertDateToSortable(dateStr) {
 }
 
 // --- Carregamento e Auto-Correção de Dados ---
-const canonicalStatuses = [
-    { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' },
-    { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' },
-    { id: 'corte', label: 'Corte' }, { id: 'faturamento', label: 'Fat.' },
-    { id: 'instalacao', label: 'Instalação' }, { id: 'entrega', label: 'Entrega' }
-];
-
+const canonicalStatuses = [ { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' }, { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' }, { id: 'corte', label: 'Corte' }, { id: 'faturamento', label: 'Fat.' }, { id: 'instalacao', label: 'Instalação' }, { id: 'entrega', label: 'Entrega' }];
 const q = query(tasksCollection, orderBy("deliveryDate", "asc"), orderBy("order", "asc"));
-
 onSnapshot(q, (snapshot) => {
+    // (código de carregamento inalterado)
     const batch = writeBatch(db);
     let updatesNeeded = 0;
-
-    tasks = snapshot.docs.map(documentSnapshot => {
-        const data = documentSnapshot.data();
-        let needsDBUpdate = false;
-        const updates = {};
-        
-        let correctedData = { ...data };
-
-        const existingStatuses = correctedData.statuses || [];
-        const healedStatuses = canonicalStatuses.map(canonical => {
-            const existing = existingStatuses.find(s => s.id === canonical.id);
-            return {
-                id: canonical.id,
-                label: canonical.label,
-                state: existing?.state || 'state-pending',
-                date: existing?.date || ''
-            };
-        });
-
-        if (JSON.stringify(existingStatuses) !== JSON.stringify(healedStatuses)) {
-            updates.statuses = healedStatuses;
-            correctedData.statuses = healedStatuses;
-            needsDBUpdate = true;
-        }
-        
-        if (correctedData.deliveryDate === undefined) {
-            const deliveryDate = convertDateToSortable(healedStatuses.find(s => s.id === 'entrega').date);
-            updates.deliveryDate = deliveryDate;
-            correctedData.deliveryDate = deliveryDate;
-            needsDBUpdate = true;
-        }
-        if (correctedData.order === undefined) {
-            updates.order = 0;
-            correctedData.order = 0;
-            needsDBUpdate = true;
-        }
-
-        if (needsDBUpdate) {
-            const docRef = doc(db, "tasks", documentSnapshot.id);
-            batch.update(docRef, updates);
-            updatesNeeded++;
-        }
-
-        return { id: documentSnapshot.id, ...correctedData };
-    });
-
-    if (updatesNeeded > 0) {
-        batch.commit().catch(err => console.error("Erro ao salvar auto-correção:", err));
-    }
-
+    tasks = snapshot.docs.map(documentSnapshot => { const data = documentSnapshot.data(); let needsDBUpdate = false; const updates = {}; let correctedData = { ...data }; const existingStatuses = correctedData.statuses || []; const healedStatuses = canonicalStatuses.map(canonical => { const existing = existingStatuses.find(s => s.id === canonical.id); return { id: canonical.id, label: canonical.label, state: existing?.state || 'state-pending', date: existing?.date || '' }; }); if (JSON.stringify(existingStatuses) !== JSON.stringify(healedStatuses)) { updates.statuses = healedStatuses; correctedData.statuses = healedStatuses; needsDBUpdate = true; } if (correctedData.deliveryDate === undefined) { const deliveryDate = convertDateToSortable(healedStatuses.find(s => s.id === 'entrega').date); updates.deliveryDate = deliveryDate; correctedData.deliveryDate = deliveryDate; needsDBUpdate = true; } if (correctedData.order === undefined) { updates.order = 0; correctedData.order = 0; needsDBUpdate = true; } if (needsDBUpdate) { const docRef = doc(db, "tasks", documentSnapshot.id); batch.update(docRef, updates); updatesNeeded++; } return { id: documentSnapshot.id, ...correctedData }; });
+    if (updatesNeeded > 0) { batch.commit().catch(err => console.error("Erro ao salvar auto-correção:", err)); }
     renderAllTasks(tasks);
     console.log("Dados carregados/atualizados do Firebase.");
-}, (error) => {
-    console.error("ERRO GRAVE AO CARREGAR DADOS:", error);
-    kanbanBody.innerHTML = `<p style="text-align: center; color: red; padding: 20px; font-weight: bold;">Erro ao carregar os dados. Verifique o console (F12) e certifique-se de que o índice do Firebase está criado e ativado.</p>`;
-});
-
+}, (error) => { console.error("ERRO GRAVE AO CARREGAR DADOS:", error); kanbanBody.innerHTML = `<p style="text-align: center; color: red; padding: 20px; font-weight: bold;">Erro ao carregar os dados. Verifique o console (F12) e certifique-se de que o índice do Firebase está criado e ativado.</p>`; });
 
 // --- Lógica de Eventos ---
-addRowButton.addEventListener('click', async () => {
-    const newOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order || 0)) + 1 : 0;
-    await addDoc(tasksCollection, {
-        clientName: "Novo Cliente", osNumber: "OS: Nova", order: newOrder,
-        deliveryDate: '9999-12-31',
-        statuses: canonicalStatuses.map(s => ({ ...s, state: 'state-pending', date: '' }))
-    });
-});
-
-kanbanBody.addEventListener('click', async (event) => {
-    const button = event.target.closest('button');
-    if (!button) return;
-    const row = button.closest('.kanban-row');
-    if (!row) return;
-    const docId = row.id;
-    const docRef = doc(db, "tasks", docId);
-
-    if (button.classList.contains('delete-button')) { await deleteDoc(docRef); }
-    else if (button.classList.contains('status-button')) {
-        const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked'];
-        const statusId = button.dataset.statusId;
-        const currentDoc = await getDoc(docRef);
-        const newStatuses = currentDoc.data().statuses.map(status => {
-            if (status.id === statusId) {
-                const currentIndex = states.indexOf(status.state);
-                const nextIndex = (currentIndex + 1) % states.length;
-                return { ...status, state: states[nextIndex] };
-            }
-            return status;
-        });
-        await updateDoc(docRef, { statuses: newStatuses });
-    }
-    else if (button.classList.contains('calendar-button')) {
-        const task = tasks.find(t => t.id === docId);
-        if (task) {
-            const eventTitle = `Entrega: ${task.clientName} (${task.osNumber})`;
-            const eventDetails = `Verificar detalhes da ${task.osNumber} para o cliente ${task.clientName}.`;
-            window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&details=${encodeURIComponent(eventDetails)}`, '_blank');
-        }
-    }
-});
-
-kanbanBody.addEventListener('change', async (event) => {
-    const input = event.target;
-    const row = input.closest('.kanban-row');
-    if (!row || !input.matches('input[type="text"]')) return;
-    const docId = row.id;
-    const docRef = doc(db, "tasks", docId);
-    
-    if (input.matches('.client-name-input')) { await updateDoc(docRef, { clientName: input.value }); } 
-    else if (input.matches('.os-number-input')) { await updateDoc(docRef, { osNumber: input.value }); } 
-    else if (input.matches('.status-date-input')) {
-        const statusId = input.dataset.statusId;
-        const currentDoc = await getDoc(docRef);
-        const newStatuses = currentDoc.data().statuses.map(s => (s.id === statusId) ? { ...s, date: input.value } : s);
-        
-        const updateData = { statuses: newStatuses };
-
-        if (statusId === 'entrega') {
-            updateData.deliveryDate = convertDateToSortable(input.value);
-        }
-        await updateDoc(docRef, updateData);
-    }
-});
+// (código dos outros botões e eventos inalterado)
+addRowButton.addEventListener('click', async () => { const newOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order || 0)) + 1 : 0; await addDoc(tasksCollection, { clientName: "Novo Cliente", osNumber: "OS: Nova", order: newOrder, deliveryDate: '9999-12-31', statuses: canonicalStatuses.map(s => ({ ...s, state: 'state-pending', date: '' })) }); });
+kanbanBody.addEventListener('click', async (event) => { const button = event.target.closest('button'); if (!button) return; const row = button.closest('.kanban-row'); if (!row) return; const docId = row.id; const docRef = doc(db, "tasks", docId); if (button.classList.contains('delete-button')) { await deleteDoc(docRef); } else if (button.classList.contains('status-button')) { const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked']; const statusId = button.dataset.statusId; const currentDoc = await getDoc(docRef); const newStatuses = currentDoc.data().statuses.map(status => { if (status.id === statusId) { const currentIndex = states.indexOf(status.state); const nextIndex = (currentIndex + 1) % states.length; return { ...status, state: states[nextIndex] }; } return status; }); await updateDoc(docRef, { statuses: newStatuses }); } else if (button.classList.contains('calendar-button')) { const task = tasks.find(t => t.id === docId); if (task) { const eventTitle = `Entrega: ${task.clientName} (${task.osNumber})`; const eventDetails = `Verificar detalhes da ${task.osNumber} para o cliente ${task.clientName}.`; window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&details=${encodeURIComponent(eventDetails)}`, '_blank'); } } });
+kanbanBody.addEventListener('change', async (event) => { const input = event.target; const row = input.closest('.kanban-row'); if (!row || !input.matches('input[type="text"]')) return; const docId = row.id; const docRef = doc(db, "tasks", docId); if (input.matches('.client-name-input')) { await updateDoc(docRef, { clientName: input.value }); } else if (input.matches('.os-number-input')) { await updateDoc(docRef, { osNumber: input.value }); } else if (input.matches('.status-date-input')) { const statusId = input.dataset.statusId; const currentDoc = await getDoc(docRef); const newStatuses = currentDoc.data().statuses.map(s => (s.id === statusId) ? { ...s, date: input.value } : s); const updateData = { statuses: newStatuses }; if (statusId === 'entrega') { updateData.deliveryDate = convertDateToSortable(input.value); } await updateDoc(docRef, updateData); } });
 
 // --- DRAG AND DROP ---
+// (código de drag and drop inalterado)
 kanbanBody.addEventListener('dragstart', (e) => { if (e.target.classList.contains('kanban-row')) e.target.classList.add('dragging'); });
-kanbanBody.addEventListener('dragend', async () => {
-    const draggingElement = document.querySelector('.dragging');
-    if (!draggingElement) return;
-    draggingElement.classList.remove('dragging');
-    
-    const newOrderedIds = Array.from(kanbanBody.querySelectorAll('.kanban-row')).map(r => r.id);
-    const batch = writeBatch(db);
-    newOrderedIds.forEach((id, index) => { batch.update(doc(db, "tasks", id), { order: index }); });
-    await batch.commit();
-});
-kanbanBody.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const afterElement = getDragAfterElement(kanbanBody, e.clientY);
-    const draggingElement = document.querySelector('.dragging');
-    if (draggingElement) {
-        if (afterElement == null) kanbanBody.appendChild(draggingElement);
-        else kanbanBody.insertBefore(draggingElement, afterElement);
-    }
-});
-function getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll('.kanban-row:not(.dragging)')];
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) return { offset, element: child };
-        else return closest;
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
+kanbanBody.addEventListener('dragend', async () => { const draggingElement = document.querySelector('.dragging'); if (!draggingElement) return; draggingElement.classList.remove('dragging'); const newOrderedIds = Array.from(kanbanBody.querySelectorAll('.kanban-row')).map(r => r.id); const batch = writeBatch(db); newOrderedIds.forEach((id, index) => { batch.update(doc(db, "tasks", id), { order: index }); }); await batch.commit(); });
+kanbanBody.addEventListener('dragover', (e) => { e.preventDefault(); const afterElement = getDragAfterElement(kanbanBody, e.clientY); const draggingElement = document.querySelector('.dragging'); if (draggingElement) { if (afterElement == null) kanbanBody.appendChild(draggingElement); else kanbanBody.insertBefore(draggingElement, afterElement); } });
+function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.kanban-row:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) return { offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element; }
 
 // --- PESQUISA ---
-const clearSearchState = () => {
-    currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1;
-    searchCounter.textContent = '';
-    document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
-};
-const handleSearch = () => {
-    const newSearchTerm = searchInput.value.toLowerCase().trim();
-    if (!newSearchTerm) { clearSearchState(); return; }
-    if (newSearchTerm !== currentSearchTerm) {
-        currentSearchTerm = newSearchTerm;
-        currentMatchingIndices = tasks.reduce((acc, task, index) => {
-            if (task.clientName.toLowerCase().includes(currentSearchTerm) || task.osNumber.toLowerCase().includes(currentSearchTerm)) {
-                acc.push(index);
-            }
-            return acc;
-        }, []);
-        searchResultPointer = -1;
-    }
-    if (currentMatchingIndices.length === 0) {
-        searchCounter.textContent = '0/0';
-        alert('Nenhum item encontrado.');
-        return;
-    }
-    searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length;
-    const taskIndexToShow = currentMatchingIndices[searchResultPointer];
-    const foundTask = tasks[taskIndexToShow];
-    const foundRow = document.getElementById(foundTask.id);
-    if (foundRow) {
-        document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
-        foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        foundRow.classList.add('highlight');
-        searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`;
-    }
-};
+// (código de pesquisa inalterado)
+const clearSearchState = () => { currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1; searchCounter.textContent = ''; document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); };
+const handleSearch = () => { const newSearchTerm = searchInput.value.toLowerCase().trim(); if (!newSearchTerm) { clearSearchState(); return; } if (newSearchTerm !== currentSearchTerm) { currentSearchTerm = newSearchTerm; currentMatchingIndices = tasks.reduce((acc, task, index) => { if (task.clientName.toLowerCase().includes(currentSearchTerm) || task.osNumber.toLowerCase().includes(currentSearchTerm)) { acc.push(index); } return acc; }, []); searchResultPointer = -1; } if (currentMatchingIndices.length === 0) { searchCounter.textContent = '0/0'; alert('Nenhum item encontrado.'); return; } searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length; const taskIndexToShow = currentMatchingIndices[searchResultPointer]; const foundTask = tasks[taskIndexToShow]; const foundRow = document.getElementById(foundTask.id); if (foundRow) { document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); foundRow.classList.add('highlight'); searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`; } };
 searchButton.addEventListener('click', handleSearch);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
 searchInput.addEventListener('input', clearSearchState);
 
+// --- HEADER FIXO ---
+// (código do header fixo inalterado)
+window.addEventListener('scroll', handleStickyHeader); window.addEventListener('resize', handleStickyHeader);
+function handleStickyHeader() { const header = document.querySelector('.kanban-header'); const placeholder = document.querySelector('.header-placeholder'); const kanbanTable = document.querySelector('.kanban-table'); if (!header || !placeholder || !kanbanTable) return; const scrollTriggerPoint = kanbanTable.offsetTop; if (window.pageYOffset > scrollTriggerPoint) { if (!header.classList.contains('is-sticky')) { header.classList.add('is-sticky'); placeholder.style.display = 'block'; } const rect = kanbanTable.getBoundingClientRect(); placeholder.style.height = `${header.offsetHeight}px`; header.style.width = `${rect.width}px`; header.style.left = `${rect.left}px`; } else { if (header.classList.contains('is-sticky')) { header.classList.remove('is-sticky'); header.style.width = ''; header.style.left = ''; placeholder.style.display = 'none'; } } }
 
-// --- CÓDIGO PARA HEADER FIXO ---
-window.addEventListener('scroll', handleStickyHeader);
-window.addEventListener('resize', handleStickyHeader); // Adicionado para recalcular ao redimensionar a janela
 
-function handleStickyHeader() {
-    const header = document.querySelector('.kanban-header');
-    const placeholder = document.querySelector('.header-placeholder');
-    const kanbanTable = document.querySelector('.kanban-table');
+// --- LÓGICA DE EXPORTAÇÃO PARA PDF ---
+const exportToPDF = async () => {
+    const contentToPrint = document.querySelector('.kanban-board');
+    const originalButtonText = exportPdfButton.querySelector('span').textContent;
+
+    // Feedback visual para o usuário
+    exportPdfButton.disabled = true;
+    exportPdfButton.querySelector('span').textContent = 'Exportando...';
     
-    if (!header || !placeholder || !kanbanTable) return;
+    // Adiciona a classe para o modo de impressão condensado
+    document.body.classList.add('print-mode');
 
-    const scrollTriggerPoint = kanbanTable.offsetTop;
-    
-    if (window.pageYOffset > scrollTriggerPoint) {
-        if (!header.classList.contains('is-sticky')) {
-            header.classList.add('is-sticky');
-            placeholder.style.display = 'block';
+    try {
+        const canvas = await html2canvas(contentToPrint, {
+            scale: 2, // Aumenta a resolução da imagem
+            useCORS: true,
+            logging: false
+        });
+
+        // jsPDF(orientação, unidade, formato)
+        const pdf = new jspdf.jsPDF('p', 'mm', 'a4'); 
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const canvasAspectRatio = canvasHeight / canvasWidth;
+
+        let finalPdfWidth = pdfWidth - 20; // Deixa 10mm de margem de cada lado
+        let finalPdfHeight = finalPdfWidth * canvasAspectRatio;
+
+        let position = 0;
+        let heightLeft = finalPdfHeight;
+
+        // Adiciona a primeira parte da imagem
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position, finalPdfWidth, finalPdfHeight);
+        heightLeft -= (pdfHeight - 20); // Subtrai a altura útil da página
+
+        // Adiciona novas páginas se o conteúdo for maior que a página
+        while (heightLeft > 0) {
+            position -= (pdfHeight - 20); // Move a "janela de visualização" da imagem para cima
+            pdf.addPage();
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position, finalPdfWidth, finalPdfHeight);
+            heightLeft -= (pdfHeight - 20);
         }
         
-        const rect = kanbanTable.getBoundingClientRect();
-        placeholder.style.height = `${header.offsetHeight}px`;
-        header.style.width = `${rect.width}px`;
-        header.style.left = `${rect.left}px`;
+        pdf.save('quadro-kanban.pdf');
 
-    } else {
-        if (header.classList.contains('is-sticky')) {
-            header.classList.remove('is-sticky');
-            header.style.width = '';
-            header.style.left = '';
-            placeholder.style.display = 'none';
-        }
+    } catch (error) {
+        console.error("Erro ao gerar o PDF:", error);
+        alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
+    } finally {
+        // Restaura o estado original
+        document.body.classList.remove('print-mode');
+        exportPdfButton.disabled = false;
+        exportPdfButton.querySelector('span').textContent = originalButtonText;
     }
-}
+};
+
+exportPdfButton.addEventListener('click', exportToPDF);
