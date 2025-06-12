@@ -104,13 +104,11 @@ h1 {
     border-bottom: 1px solid var(--border-color);
 }
 
-/* --- AQUI ESTÁ A MÁGICA --- */
-/* Esta regra garante que o cabeçalho das colunas fique fixo no topo da tela ao rolar */
 .kanban-header {
     position: sticky;
     top: 0;
     z-index: 10;
-    background-color: #ffffff; /* Fundo branco para não ver o conteúdo rolando por trás */
+    background-color: #ffffff;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -140,20 +138,22 @@ h1 {
     background-color: #fcfcfd; 
 }
 
-/* Mantém as primeiras colunas fixas na lateral ao rolar horizontalmente */
-.kanban-header > .header-cell:nth-child(1), .kanban-row > .cell:nth-child(1),
-.kanban-header > .header-cell:nth-child(2), .kanban-row > .cell:nth-child(2) {
-    position: sticky; 
-    z-index: 2;
-    background-color: inherit;
+.kanban-header > .header-cell, .kanban-row > .cell {
+    /* Mantém as primeiras colunas fixas na lateral ao rolar horizontalmente */
+    &
+:nth-child(1), &:nth-child(2) {
+        position: sticky;
+        z-index: 2;
+        background-color: inherit;
+    }
+    &:nth-child(1) { left: 0; }
+    &:nth-child(2) {
+        left: 56px;
+        border-right: 1px solid var(--border-color);
+        padding-right: 16px;
+    }
 }
-.kanban-header > .header-cell:nth-child(1), .kanban-row > .cell:nth-child(1) { left: 0; }
-.kanban-header > .header-cell:nth-child(2), .kanban-row > .cell:nth-child(2) {
-    left: 56px; 
-    border-right: 1px solid var(--border-color); 
-    padding-right: 16px;
-}
-/* Garante que o fundo do header fixo acompanhe o resto */
+
 .kanban-header > .header-cell, .kanban-header > a.header-link { 
     background-color: #fff; 
 }
@@ -194,4 +194,172 @@ h1 {
 
 .cell-client .os-number-input { 
     font-size: 16px; 
-    font
+    font-weight: 600; 
+    color: var(--text-color); 
+}
+
+.cell-client .client-name-input { 
+    font-size: 14px; 
+    font-weight: 400; 
+    color: var(--text-muted); 
+}
+
+.status-control { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+}
+
+.status-label-mobile { 
+    display: none; 
+}
+
+.status-date-input { 
+    width: 60px; 
+    padding: 3px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 4px; 
+    font-size: 13px; 
+    text-align: center; 
+}
+
+.status-button {
+    width: 24px; 
+    height: 24px; 
+    border: 2px solid var(--border-color); 
+    background-color: #fff;
+    cursor: pointer; 
+    border-radius: 6px; 
+    padding: 0;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    flex-shrink: 0;
+    transition: all 0.2s ease-in-out;
+}
+
+.state-pending { 
+    border-color: var(--primary-color); 
+    border-radius: 50%; 
+}
+
+.state-in-progress { 
+    background-color: var(--primary-color); 
+    border-color: var(--primary-color); 
+    color: white; 
+}
+.state-in-progress::before { 
+    content: '...'; 
+    font-weight: 600; 
+    line-height: 12px; 
+    font-size: 16px; 
+}
+
+.state-done { 
+    background-color: var(--green-color); 
+    border-color: var(--green-color); 
+    color: white; 
+}
+.state-done::before { 
+    content: '✓'; 
+    line-height: 20px; 
+    font-size: 18px; 
+}
+
+.state-blocked { 
+    background-color: var(--red-color); 
+    border-color: var(--red-color); 
+    color: white; 
+}
+.state-blocked::before { 
+    content: 'X'; 
+    line-height: 20px; 
+    font-size: 16px; 
+}
+
+.cell-actions { 
+    gap: 4px; 
+}
+
+.action-button {
+    background: none; 
+    border: none; 
+    color: #adb5bd; 
+    font-size: 22px; 
+    cursor: pointer;
+    border-radius: 50%; 
+    width: 32px; 
+    height: 32px;
+    transition: background-color 0.2s, color 0.2s;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+
+.add-row-button, .import-button {
+    display: inline-flex; 
+    align-items: center; 
+    gap: 8px; 
+    padding: 10px 20px; 
+    font-size: 16px; 
+    font-weight: 500;
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer;
+}
+
+.add-row-button { 
+    background-color: var(--primary-color); 
+}
+
+.import-button { 
+    background-color: var(--green-color); 
+    text-decoration: none; 
+    transition: background-color 0.2s; 
+    margin: 0 12px; 
+}
+.import-button:hover { 
+    background-color: #157347; 
+}
+
+@media (max-width: 992px) {
+    .kanban-board { overflow-x: hidden; }
+    .kanban-table { min-width: 100%; }
+    .kanban-header { display: none; }
+    .kanban-row {
+        display: flex; 
+        flex-direction: column; 
+        gap: 16px; 
+        padding: 20px;
+        border: 1px solid var(--border-color); 
+        border-radius: 10px; 
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px var(--shadow-color); 
+        position: relative;
+    }
+    .cell { 
+        flex-direction: row; 
+        width: 100%; 
+        justify-content: space-between; 
+    }
+    .status-label-mobile { 
+        display: inline; 
+        font-size: 16px; 
+        font-weight: 500; 
+    }
+    .cell-drag-handle { 
+        position: absolute; 
+        top: 12px; 
+        left: 16px; 
+    }
+    .cell-actions { 
+        position: absolute; 
+        top: 12px; 
+        right: 12px; 
+    }
+    .cell-client { 
+        border-bottom: 1px solid var(--border-color); 
+        padding-bottom: 16px; 
+    }
+}
