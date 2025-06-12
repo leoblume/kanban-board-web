@@ -1,6 +1,9 @@
+// --- Importações do Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
+// --- Configuração do Firebase ---
+// Mantenha aqui a sua configuração original
 const firebaseConfig = {
   apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
   authDomain: "kanban-board-92ce7.firebaseapp.com",
@@ -10,19 +13,23 @@ const firebaseConfig = {
   appId: "1:494809291125:web:17f9eefa4287d39174db3c"
 };
 
+// --- Inicialização ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const tasksCollection = collection(db, "tasks");
 
+// --- Seletores de Elementos DOM ---
 const kanbanBody = document.getElementById('kanban-body');
 const addRowButton = document.getElementById('add-row-button');
 const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const searchCounter = document.getElementById('search-counter');
 
+// --- Estado Local ---
 let tasks = [];
 let currentSearchTerm = '', currentMatchingIndices = [], searchResultPointer = -1;
 
+// --- Renderização ---
 const renderAllTasks = (tasksToRender) => {
     kanbanBody.innerHTML = '';
     tasksToRender.forEach(task => {
@@ -56,18 +63,44 @@ const renderAllTasks = (tasksToRender) => {
     });
 };
 
-// MODIFICADO: A query principal agora ordena por data de entrega e depois pela ordem manual.
+// --- Funções Auxiliares ---
+// Converte data dd/mm para um formato que ordena corretamente (yyyy-mm-dd)
+function convertDateToSortable(dateStr) {
+    if (!dateStr || !dateStr.includes('/')) {
+        return '9999-12-31'; // Datas vazias ou inválidas vão para o final
+    }
+    const parts = dateStr.split('/');
+    if (parts.length < 2 || isNaN(parseInt(parts[0])) || isNaN(parseInt(parts[1]))) {
+        return '9999-12-31'; // Data mal formatada
+    }
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = (parts[2] && parts[2].length === 4) ? parts[2] : new Date().getFullYear();
+    return `${year}-${month}-${day}`;
+}
+
+// --- Carregamento e Migração de Dados em Tempo Real ---
+// A query principal agora ordena por data de entrega e depois pela ordem manual.
 const q = query(tasksCollection, orderBy("deliveryDate", "asc"), orderBy("order", "asc"));
 
 onSnapshot(q, (snapshot) => {
+    const batch = writeBatch(db);
+    let updatesNeeded = 0;
+
     tasks = snapshot.docs.map(doc => {
         const data = doc.data();
         let needsUpdate = false;
 
-        const expectedStatuses = ['compras', 'arte', 'impressao', 'acabamento', 'corte', 'faturamento', 'instalacao', 'entrega'];
-        const hasCorte = data.statuses.some(s => s.id === 'corte');
+        // --- LÓGICA DE MIGRAÇÃO E CORREÇÃO AUTOMÁTICA ---
+        // 1. Garante que 'deliveryDate' existe para ordenação. Se não existir, cria-o.
+        if (data.deliveryDate === undefined) {
+            const entregaStatus = data.statuses.find(s => s.id === 'entrega');
+            data.deliveryDate = convertDateToSortable(entregaStatus?.date || '');
+            needsUpdate = true;
+        }
 
-        // BUGFIX: Se a tarefa não tiver o status 'corte', adiciona-o e marca para atualização
+        // 2. Garante que o status 'corte' existe. Se não existir, adiciona-o.
+        const hasCorte = data.statuses.some(s => s.id === 'corte');
         if (!hasCorte) {
             const newCorteStatus = { id: 'corte', label: 'Corte', state: 'state-pending', date: '' };
             const acabamentoIndex = data.statuses.findIndex(s => s.id === 'acabamento');
@@ -75,42 +108,41 @@ onSnapshot(q, (snapshot) => {
             needsUpdate = true;
         }
         
-        // NOVO: Adiciona data de entrega para exibição
-        const entregaStatus = data.statuses.find(s => s.id === 'entrega');
-        data.deliveryDateDisplay = entregaStatus ? entregaStatus.date : '';
-
-        // Se uma atualização for necessária, executa-a no banco de dados.
+        // Se uma atualização for necessária, adiciona ao batch para ser salvo de uma vez.
         if (needsUpdate) {
-            console.log(`Atualizando tarefa ${doc.id} para adicionar status 'corte'.`);
-            updateDoc(doc.ref, { statuses: data.statuses }).catch(err => console.error("Erro ao persistir status 'corte':", err));
+            console.log(`Agendando atualização para a tarefa ${doc.id} (migração de dados).`);
+            const docRef = doc(db, "tasks", doc.id);
+            batch.update(docRef, { statuses: data.statuses, deliveryDate: data.deliveryDate });
+            updatesNeeded++;
         }
 
         return { id: doc.id, ...data };
     });
 
+    // Se houver atualizações pendentes, envia todas de uma vez para o Firebase.
+    if (updatesNeeded > 0) {
+        console.log(`Executando ${updatesNeeded} atualizações em batch...`);
+        batch.commit().then(() => {
+            console.log("Migração de dados concluída com sucesso.");
+        }).catch(err => {
+            console.error("Erro ao executar a migração de dados em batch:", err);
+        });
+    }
+
     renderAllTasks(tasks);
     console.log("Dados carregados/atualizados do Firebase.");
 }, (error) => {
-    console.error("Erro ao carregar dados: ", error);
+    console.error("ERRO GRAVE AO CARREGAR DADOS:", error);
+    kanbanBody.innerHTML = `<p style="text-align: center; color: red; padding: 20px; font-weight: bold;">Erro ao carregar os dados. Verifique o console para mais detalhes (F12) e certifique-se de que o índice do Firestore foi criado corretamente na aba 'Índices' do seu banco de dados.</p>`;
 });
 
-// Helper para converter data dd/mm para um formato que ordena corretamente (yyyy-mm-dd)
-function convertDateToSortable(dateStr) {
-    if (!dateStr || !dateStr.includes('/')) {
-        return '9999-12-31'; // Datas vazias ou inválidas vão para o final
-    }
-    const parts = dateStr.split('/');
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = new Date().getFullYear(); // Assume o ano atual
-    return `${year}-${month}-${day}`;
-}
+// --- Lógica de Eventos ---
 
 addRowButton.addEventListener('click', async () => {
     const newOrder = tasks.length;
     await addDoc(tasksCollection, {
         clientName: "Novo Cliente", osNumber: "OS: Nova", order: newOrder,
-        deliveryDate: '9999-12-31', // Data padrão para ordenação
+        deliveryDate: '9999-12-31', // Data padrão para ordenação de novos itens
         statuses: [
             { id: 'compras', label: 'Compras', state: 'state-pending', date: '' },
             { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
@@ -170,9 +202,10 @@ kanbanBody.addEventListener('change', async (event) => {
         const statusId = input.dataset.statusId;
         const currentDoc = await getDoc(docRef);
         const newStatuses = currentDoc.data().statuses.map(s => (s.id === statusId) ? { ...s, date: input.value } : s);
+        
         const updateData = { statuses: newStatuses };
 
-        // MODIFICADO: Se a data de entrega for alterada, atualiza o campo de ordenação.
+        // Se a data de entrega for alterada, atualiza o campo de ordenação.
         if (statusId === 'entrega') {
             updateData.deliveryDate = convertDateToSortable(input.value);
         }
@@ -212,8 +245,40 @@ function getDragAfterElement(container, y) {
 }
 
 // --- PESQUISA ---
-const clearSearchState = () => { /* ... (código inalterado) ... */ };
-const handleSearch = () => { /* ... (código inalterado) ... */ };
+const clearSearchState = () => {
+    currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1;
+    searchCounter.textContent = '';
+    document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+};
+const handleSearch = () => {
+    const newSearchTerm = searchInput.value.toLowerCase().trim();
+    if (!newSearchTerm) { clearSearchState(); return; }
+    if (newSearchTerm !== currentSearchTerm) {
+        currentSearchTerm = newSearchTerm;
+        currentMatchingIndices = tasks.reduce((acc, task, index) => {
+            if (task.clientName.toLowerCase().includes(currentSearchTerm) || task.osNumber.toLowerCase().includes(currentSearchTerm)) {
+                acc.push(index);
+            }
+            return acc;
+        }, []);
+        searchResultPointer = -1;
+    }
+    if (currentMatchingIndices.length === 0) {
+        searchCounter.textContent = '0/0';
+        alert('Nenhum item encontrado.');
+        return;
+    }
+    searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length;
+    const taskIndexToShow = currentMatchingIndices[searchResultPointer];
+    const foundTask = tasks[taskIndexToShow];
+    const foundRow = document.getElementById(foundTask.id);
+    if (foundRow) {
+        document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+        foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        foundRow.classList.add('highlight');
+        searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`;
+    }
+};
 searchButton.addEventListener('click', handleSearch);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
 searchInput.addEventListener('input', clearSearchState);
