@@ -8,7 +8,7 @@
     --text-color: #212529;
     --text-muted: #6c757d;
     --shadow-color: rgba(0, 0, 0, 0.05);
-    --hover-color: #e7f1ff; /* NOVO: Azul claro para o hover */
+    --hover-color: #e7f1ff; 
 }
 
 html { 
@@ -31,7 +31,6 @@ body {
     border-radius: 12px; 
     padding: 24px; 
     box-shadow: 0 8px 30px var(--shadow-color);
-    /* overflow-x: auto; */ /* <<<<<<< CORREÇÃO 1: REMOVIDO DAQUI. Este era o erro principal. */
 }
 
 .board-title-header {
@@ -94,7 +93,7 @@ h1 {
 
 .kanban-table { 
     min-width: 1300px; 
-    overflow-x: auto; /* <<<<<<< CORREÇÃO 1: MOVIDO PARA CÁ. Agora a rolagem é só na tabela. */
+    overflow-x: auto; 
 }
 
 .kanban-header, .kanban-row {
@@ -106,16 +105,17 @@ h1 {
     border-bottom: 1px solid var(--border-color);
 }
 
+/* MODIFICAÇÃO 1: Fixação do cabeçalho da tabela */
 .kanban-header {
     position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #ffffff;
+    top: 0; /* Fixa no topo do container de rolagem */
+    z-index: 10; /* Garante que fique acima das linhas */
+    background-color: #ffffff; /* Fundo branco para não ver o conteúdo rolando por baixo */
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
     font-size: 12px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02); /* Sombra sutil para dar elevação */
 }
 
 .header-link {
@@ -137,7 +137,7 @@ h1 {
 }
 
 .kanban-row:hover { 
-    background-color: var(--hover-color); /* <<<<<<< CORREÇÃO 2: Nova cor de hover, mais visível */
+    background-color: var(--hover-color); 
 }
 
 /* Colunas laterais fixas */
@@ -328,6 +328,50 @@ h1 {
 .import-button:hover { 
     background-color: #157347; 
 }
+
+
+/* --- NOVOS ESTILOS PARA A PÁGINA DE SETOR (setor.html) --- */
+.sector-task-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* Espaço entre os itens de informação */
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    flex-wrap: wrap; /* Permite quebra de linha em telas pequenas */
+}
+
+.sector-task-os, .sector-task-client, .sector-task-execution-date, .sector-task-delivery {
+    font-size: 15px;
+    white-space: nowrap; /* Evita quebra de linha no meio da info */
+}
+
+.sector-task-os {
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 80px; /* Largura mínima para alinhamento */
+}
+
+.sector-task-client {
+    flex-grow: 1; /* Faz o nome do cliente ocupar o espaço disponível */
+    font-weight: 500;
+    color: #495057;
+}
+
+.sector-task-execution-date, .sector-task-delivery {
+    color: var(--text-muted);
+    font-size: 14px;
+    min-width: 130px; /* Largura mínima para alinhamento */
+}
+
+.sector-task-action {
+    margin-left: auto; /* Empurra o botão de ação para o final */
+    padding-left: 1rem;
+}
+
 
 @media (max-width: 992px) {
     .kanban-board { overflow-x: hidden; }

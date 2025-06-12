@@ -18,10 +18,17 @@ const taskListContainer = document.getElementById('tasks-list');
 const sectorTitleElement = document.getElementById('sector-title');
 const pageTitleElement = document.querySelector('title');
 
-// Obter o ID e o nome do setor a partir dos parâmetros da URL
 const urlParams = new URLSearchParams(window.location.search);
 const sectorId = urlParams.get('setor');
 const sectorName = urlParams.get('nome') || sectorId;
+
+// Função auxiliar para formatar a data para exibição (yyyy-mm-dd -> dd/mm)
+function formatDisplayDate(dateStr) {
+    if (!dateStr || dateStr.startsWith('9999')) return 'N/D';
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return dateStr; 
+    return `${parts[2]}/${parts[1]}`;
+}
 
 if (!sectorId) {
     sectorTitleElement.textContent = "Erro: Setor não especificado.";
@@ -42,18 +49,28 @@ function renderTasks(tasksToRender) {
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
         if (!sectorStatus) return;
 
+        // LÓGICA DA DATA DE EXECUÇÃO: Pega a data do status, ou a data de hoje como fallback.
+        let executionDate;
+        if (sectorStatus.date) {
+            executionDate = sectorStatus.date;
+        } else {
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            executionDate = `${day}/${month}`;
+        }
+        
         const taskElement = document.createElement('div');
         taskElement.className = 'sector-task-card';
         taskElement.dataset.docId = task.id;
 
+        // NOVO LAYOUT COMPACTO
         taskElement.innerHTML = `
-            <div class="sector-task-info">
-                <span class="sector-task-os">${task.osNumber}</span>
-                <span class="sector-task-client">${task.clientName}</span>
-                <span class="sector-task-delivery">Entrega: ${task.deliveryDateDisplay || 'N/D'}</span>
-            </div>
+            <span class="sector-task-os">${task.osNumber}</span>
+            <span class="sector-task-client">${task.clientName}</span>
+            <span class="sector-task-execution-date">Execução: ${executionDate}</span>
+            <span class="sector-task-delivery">Entrega: ${task.deliveryDateDisplay}</span>
             <div class="sector-task-action">
-                <span>Marcar como Concluído:</span>
                 <button class="status-button ${sectorStatus.state}" title="Clique para marcar como 'Concluído'"></button>
             </div>
         `;
@@ -62,21 +79,24 @@ function renderTasks(tasksToRender) {
 }
 
 function loadSectorTasks() {
-    // Ordena pela data de entrega, que foi adicionada no script.js principal
     const q = query(tasksCollection, orderBy("deliveryDate"));
 
     onSnapshot(q, (snapshot) => {
-        const allTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const allTasks = snapshot.docs.map(doc => {
+            const data = doc.data();
+            // Adiciona o campo de data de entrega formatado para exibição
+            return { 
+                id: doc.id, 
+                ...data,
+                deliveryDateDisplay: formatDisplayDate(data.deliveryDate)
+            };
+        });
 
         // Filtra as tarefas de acordo com as regras especificadas
         const filteredTasks = allTasks.filter(task => {
-            // Regra 1: A tarefa não pode ter NENHUM status bloqueado (vermelho)
             const isBlocked = task.statuses.some(s => s.state === 'state-blocked');
-            if (isBlocked) {
-                return false;
-            }
+            if (isBlocked) return false;
 
-            // Regra 2: O status específico deste setor deve existir e estar "em andamento" (azul)
             const sectorStatus = task.statuses.find(s => s.id === sectorId);
             return sectorStatus && sectorStatus.state === 'state-in-progress';
         });
@@ -89,7 +109,7 @@ function loadSectorTasks() {
     });
 }
 
-// Event listener para marcar a tarefa como concluída
+// Event listener para marcar a tarefa como concluída (sem alterações)
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
@@ -104,7 +124,6 @@ taskListContainer.addEventListener('click', async (event) => {
 
         const taskData = docSnap.data();
         const newStatuses = taskData.statuses.map(status => {
-            // Ação permitida: Mudar o status APENAS para 'concluído'
             if (status.id === sectorId) {
                 return { ...status, state: 'state-done' };
             }
@@ -112,7 +131,6 @@ taskListContainer.addEventListener('click', async (event) => {
         });
 
         await updateDoc(docRef, { statuses: newStatuses });
-        // A UI se atualizará automaticamente graças ao onSnapshot
     } catch (error) {
         console.error("Erro ao atualizar o status: ", error);
         alert("Ocorreu um erro ao tentar atualizar a tarefa.");
