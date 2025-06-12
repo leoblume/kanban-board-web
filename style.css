@@ -8,7 +8,7 @@
     --text-color: #212529;
     --text-muted: #6c757d;
     --shadow-color: rgba(0, 0, 0, 0.05);
-    --hover-color: #e7f1ff; 
+    --hover-color: #e7f1ff; /* Cor de hover azul clara */
 }
 
 html { 
@@ -105,17 +105,17 @@ h1 {
     border-bottom: 1px solid var(--border-color);
 }
 
-/* MODIFICAÇÃO 1: Fixação do cabeçalho da tabela */
+/* MODIFICAÇÃO 1: Garante que o cabeçalho seja fixo no topo da página ao rolar */
 .kanban-header {
     position: sticky;
-    top: 0; /* Fixa no topo do container de rolagem */
-    z-index: 10; /* Garante que fique acima das linhas */
-    background-color: #ffffff; /* Fundo branco para não ver o conteúdo rolando por baixo */
+    top: 0; /* Fixa no topo do viewport */
+    z-index: 10; /* Garante que fique acima das linhas que rolam */
+    background-color: #ffffff; /* Fundo sólido para não ver o conteúdo por baixo */
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
     font-size: 12px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02); /* Sombra sutil para dar elevação */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04); /* Sombra sutil para dar elevação */
 }
 
 .header-link {
@@ -127,9 +127,10 @@ h1 {
     margin: -4px -6px;
 }
 
+/* MODIFICAÇÃO 2: Ajuste na cor de hover para não usar texto branco */
 .header-link:hover {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--hover-color); /* Fundo azul claro */
+    color: var(--primary-color); /* Texto continua azul */
 }
 
 .kanban-row:last-child { 
@@ -137,16 +138,16 @@ h1 {
 }
 
 .kanban-row:hover { 
-    background-color: var(--hover-color); 
+    background-color: var(--hover-color);
 }
 
-/* Colunas laterais fixas */
+/* Colunas laterais fixas (para rolagem horizontal) */
 .kanban-header > *:nth-child(1), 
 .kanban-row > .cell:nth-child(1) {
     position: sticky;
     left: 0;
     z-index: 2;
-    background-color: inherit; /* Herda a cor do .kanban-row (branco, azul no hover, amarelo no highlight) */
+    background-color: inherit; 
 }
 
 .kanban-header > *:nth-child(2), 
@@ -154,12 +155,12 @@ h1 {
     position: sticky;
     left: 56px;
     z-index: 2;
-    background-color: inherit; /* Herda a cor do .kanban-row */
+    background-color: inherit;
     border-right: 1px solid var(--border-color);
     padding-right: 16px;
 }
 
-/* Garante que o fundo das células do header seja branco por padrão */
+/* Garante que o fundo das células do header seja branco por padrão para o sticky funcionar bem */
 .kanban-header > .header-cell, .kanban-header > a.header-link { 
     background-color: #fff; 
 }
@@ -330,33 +331,33 @@ h1 {
 }
 
 
-/* --- NOVOS ESTILOS PARA A PÁGINA DE SETOR (setor.html) --- */
+/* --- ESTILOS PARA A PÁGINA DE SETOR (setor.html) --- */
 .sector-task-card {
     display: flex;
     align-items: center;
-    gap: 1.5rem; /* Espaço entre os itens de informação */
+    gap: 1.5rem; 
     padding: 16px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     margin-bottom: 12px;
     background-color: #fff;
     box-shadow: 0 2px 5px var(--shadow-color);
-    flex-wrap: wrap; /* Permite quebra de linha em telas pequenas */
+    flex-wrap: wrap; 
 }
 
 .sector-task-os, .sector-task-client, .sector-task-execution-date, .sector-task-delivery {
     font-size: 15px;
-    white-space: nowrap; /* Evita quebra de linha no meio da info */
+    white-space: nowrap; 
 }
 
 .sector-task-os {
     font-weight: 600;
     color: var(--text-color);
-    min-width: 80px; /* Largura mínima para alinhamento */
+    min-width: 80px; 
 }
 
 .sector-task-client {
-    flex-grow: 1; /* Faz o nome do cliente ocupar o espaço disponível */
+    flex-grow: 1; 
     font-weight: 500;
     color: #495057;
 }
@@ -364,11 +365,11 @@ h1 {
 .sector-task-execution-date, .sector-task-delivery {
     color: var(--text-muted);
     font-size: 14px;
-    min-width: 130px; /* Largura mínima para alinhamento */
+    min-width: 130px; 
 }
 
 .sector-task-action {
-    margin-left: auto; /* Empurra o botão de ação para o final */
+    margin-left: auto; 
     padding-left: 1rem;
 }
 
