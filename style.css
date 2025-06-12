@@ -145,3 +145,107 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     .cell-actions { position: absolute; top: 12px; right: 12px; }
     .cell-client { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
 }
+
+.sector-panels-menu {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    margin-bottom: 20px;
+    background-color: var(--light-gray);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+.sector-panels-menu span {
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-right: 10px;
+}
+.sector-panels-menu a {
+    text-decoration: none;
+    color: var(--primary-color);
+    background-color: #e7f1ff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.sector-panels-menu a:hover {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+/* --- Estilos para a Página de Setor (setor.html) --- */
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: var(--text-muted);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+.back-button:hover {
+    background-color: #5c636a;
+}
+#tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 24px;
+}
+.sector-task-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+.sector-task-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sector-task-os {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+.sector-task-client {
+    font-size: 16px;
+    color: var(--text-muted);
+}
+.sector-task-delivery {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--green-color);
+}
+.sector-task-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.sector-task-action span {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.no-tasks-message, .error-message {
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+    color: var(--text-muted);
+}
+.error-message {
+    color: var(--red-color);
+}
