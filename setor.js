@@ -32,14 +32,13 @@ if (!sectorId) {
     loadSectorTasks();
 }
 
-// ALTERAÇÃO 3: Função auxiliar para obter a data de exibição
 function getDisplayDate(dateString) {
     if (dateString && dateString.trim() !== '') {
         return dateString;
     }
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Mês é 0-indexado
+    const month = String(today.getMonth() + 1).padStart(2, '0');
     return `${day}/${month}`;
 }
 
@@ -55,7 +54,6 @@ function renderTasks(tasksToRender) {
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
         if (!sectorStatus) return;
         
-        // ALTERAÇÃO 3: Buscar as datas
         const deliveryStatus = task.statuses.find(s => s.id === 'entrega');
         
         const sectorDisplayDate = getDisplayDate(sectorStatus.date);
@@ -65,7 +63,6 @@ function renderTasks(tasksToRender) {
         taskElement.className = 'sector-task-card';
         taskElement.dataset.docId = task.id;
 
-        // ALTERAÇÃO 3: Atualizado o HTML para incluir as datas
         taskElement.innerHTML = `
             <div class="sector-task-header">
                 <div class="sector-task-info">
@@ -97,10 +94,9 @@ function loadSectorTasks() {
             if (isBlocked) {
                 return false;
             }
-
             const sectorStatus = task.statuses.find(s => s.id === sectorId);
-            // Mostrar tarefas que estão 'em andamento' OU 'pendente' para este setor
-            return sectorStatus && (sectorStatus.state === 'state-in-progress' || sectorStatus.state === 'state-pending');
+            // Mostra apenas tarefas que NÃO estão concluídas ('state-done') para este setor
+            return sectorStatus && sectorStatus.state !== 'state-done';
         });
 
         renderTasks(filteredTasks);
@@ -115,6 +111,9 @@ taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
 
+    // Impede a ação se a tarefa já estiver concluída
+    if (button.classList.contains('state-done')) return;
+
     const card = button.closest('.sector-task-card');
     const docId = card.dataset.docId;
     const docRef = doc(db, "tasks", docId);
@@ -125,23 +124,15 @@ taskListContainer.addEventListener('click', async (event) => {
 
         const taskData = docSnap.data();
         const newStatuses = taskData.statuses.map(status => {
+            // ALTERAÇÃO: Ação simplificada para marcar APENAS como 'concluído'
             if (status.id === sectorId) {
-                // Alterna entre pendente, em progresso e concluído
-                const currentState = status.state;
-                let nextState = 'state-done'; // Por padrão, marca como concluído
-                if (currentState === 'state-pending') {
-                    nextState = 'state-in-progress';
-                } else if (currentState === 'state-in-progress') {
-                    nextState = 'state-done';
-                }
-                // Se já estiver 'done', o clique não faz nada, ou pode-se adicionar lógica para reverter.
-                // Por enquanto, apenas avança para concluído.
                 return { ...status, state: 'state-done' };
             }
             return status;
         });
 
         await updateDoc(docRef, { statuses: newStatuses });
+        // A UI se atualizará automaticamente graças ao onSnapshot, removendo o card da lista
     } catch (error) {
         console.error("Erro ao atualizar o status: ", error);
         alert("Ocorreu um erro ao tentar atualizar a tarefa.");
