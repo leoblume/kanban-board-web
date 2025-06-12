@@ -30,7 +30,7 @@ body {
     border-radius: 12px; 
     padding: 24px; 
     box-shadow: 0 8px 30px var(--shadow-color);
-    overflow-x: auto;
+    overflow-x: auto; /* Mantém a rolagem horizontal apenas para o quadro */
 }
 
 .board-title-header {
@@ -135,28 +135,38 @@ h1 {
 }
 
 .kanban-row:hover { 
-    background-color: #fcfcfd; 
+    background-color: #f8f9fa; /* Cor de hover um pouco mais visível */
 }
 
-.kanban-header > .header-cell, .kanban-row > .cell {
-    /* Mantém as primeiras colunas fixas na lateral ao rolar horizontalmente */
-    &
-:nth-child(1), &:nth-child(2) {
-        position: sticky;
-        z-index: 2;
-        background-color: inherit;
-    }
-    &:nth-child(1) { left: 0; }
-    &:nth-child(2) {
-        left: 56px;
-        border-right: 1px solid var(--border-color);
-        padding-right: 16px;
-    }
+/* --- CORREÇÃO DE SINTAXE PARA COLUNAS FIXAS --- */
+/* Estas regras corrigem o bug do menu e do hover */
+
+/* Seleciona o primeiro filho (célula de arrastar) no header e na linha */
+.kanban-header > *:nth-child(1), 
+.kanban-row > .cell:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: inherit; /* Herda a cor de fundo da linha (branco, cinza no hover, amarelo no highlight) */
 }
 
+/* Seleciona o segundo filho (célula Cliente/OS) no header e na linha */
+.kanban-header > *:nth-child(2), 
+.kanban-row > .cell:nth-child(2) {
+    position: sticky;
+    left: 56px; /* 40px da primeira coluna + 16px de gap */
+    z-index: 2;
+    background-color: inherit; /* Herda a cor de fundo da linha */
+    border-right: 1px solid var(--border-color);
+    padding-right: 16px;
+}
+
+/* Garante que o fundo das células do header seja branco quando não está no hover da linha */
 .kanban-header > .header-cell, .kanban-header > a.header-link { 
     background-color: #fff; 
 }
+
+/* --- FIM DA CORREÇÃO DE SINTAXE --- */
 
 .kanban-row.highlight { 
     background-color: var(--highlight-color); 
