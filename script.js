@@ -36,7 +36,6 @@ const renderAllTasks = (tasksToRender) => {
         rowElement.draggable = true;
         rowElement.id = task.id;
         
-        // MODIFICADO: A ordem dos inputs de OS e Cliente foi invertida
         rowElement.innerHTML = `
             <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
@@ -64,7 +63,22 @@ const renderAllTasks = (tasksToRender) => {
 
 // --- Carregamento em Tempo Real ---
 onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
-    tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // MODIFICADO: Mapeia os dados e garante a compatibilidade com dados antigos
+    tasks = snapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // NOVO: Garante que o status "Corte" exista para dados antigos
+        const hasCorte = data.statuses.some(s => s.id === 'corte');
+        if (!hasCorte) {
+            const newCorteStatus = { id: 'corte', label: 'Corte', state: 'state-pending', date: '' };
+            const acabamentoIndex = data.statuses.findIndex(s => s.id === 'acabamento');
+            // Insere o "Corte" depois do "Acabamento"
+            data.statuses.splice(acabamentoIndex + 1, 0, newCorteStatus);
+        }
+        
+        return { id: doc.id, ...data };
+    });
+
     renderAllTasks(tasks);
     console.log("Dados carregados/atualizados do Firebase.");
 }, (error) => {
@@ -75,12 +89,17 @@ onSnapshot(query(tasksCollection, orderBy("order")), (snapshot) => {
 
 addRowButton.addEventListener('click', async () => {
     const newOrder = tasks.length;
+    // MODIFICADO: Adiciona o novo status "Corte" na criação de uma nova linha
     await addDoc(tasksCollection, {
         clientName: "Novo Cliente", osNumber: "OS: Nova", order: newOrder,
         statuses: [
-            { id: 'compras', label: 'Compras', state: 'state-pending', date: '' }, { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
-            { id: 'impressao', label: 'Impressão', state: 'state-pending', date: '' }, { id: 'acabamento', label: 'Acabamento', state: 'state-pending', date: '' },
-            { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' }, { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
+            { id: 'compras', label: 'Compras', state: 'state-pending', date: '' },
+            { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
+            { id: 'impressao', label: 'Impressão', state: 'state-pending', date: '' },
+            { id: 'acabamento', label: 'Acabamento', state: 'state-pending', date: '' },
+            { id: 'corte', label: 'Corte', state: 'state-pending', date: '' }, // NOVO status adicionado
+            { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' },
+            { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
             { id: 'entrega', label: 'Entrega', state: 'state-pending', date: '' }
         ]
     });
@@ -96,13 +115,14 @@ kanbanBody.addEventListener('click', async (event) => {
 
     if (button.classList.contains('delete-button')) { await deleteDoc(docRef); }
     else if (button.classList.contains('status-button')) {
-        const states = ['state-pending', 'state-done', 'state-blocked'];
+        // MODIFICADO: Adicionado o novo 'state-in-progress' ao ciclo de 4 estados
+        const states = ['state-pending', 'state-done', 'state-blocked', 'state-in-progress'];
         const statusId = button.dataset.statusId;
         const currentDoc = await getDoc(docRef);
         const newStatuses = currentDoc.data().statuses.map(status => {
             if (status.id === statusId) {
-                const currentState = states.find(s => status.state === s) || 'state-blocked';
-                const nextIndex = (states.indexOf(currentState) + 1) % states.length;
+                const currentIndex = states.indexOf(status.state);
+                const nextIndex = (currentIndex + 1) % states.length;
                 return { ...status, state: states[nextIndex] };
             }
             return status;
