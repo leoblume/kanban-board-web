@@ -79,33 +79,30 @@ body.print-mode { background: #fff !important; }
 .print-mode .kanban-table { min-width: auto; overflow: visible; }
 
 .print-mode .kanban-header, .print-mode .kanban-row {
-    font-size: 9pt; /* AJUSTE PDF: Aumenta a fonte base para legibilidade */
-    /* AJUSTE PDF: A mudança mais importante! Dá muito mais espaço para a coluna de cliente. */
+    font-size: 9pt;
     grid-template-columns: 3.5fr repeat(8, 1fr); 
-    gap: 4px; /* AJUSTE PDF: Reduz o espaçamento entre colunas */
+    gap: 4px;
     padding: 6px 4px;
+    align-items: start; /* CORREÇÃO CRÍTICA PDF: Alinha as células no topo, permitindo que a linha cresça */
+    border-bottom: 1px solid #ccc;
 }
 .print-mode .kanban-header { position: static !important; }
 .print-mode .cell:first-child, .print-mode .header-cell:first-child, .print-mode .cell:last-child, .print-mode .header-cell:last-child { display: none; }
 
-.print-mode .os-number-input { font-size: 10pt; }
-.print-mode .client-name-input { font-size: 9pt; } /* AJUSTE PDF: Aumenta fonte do cliente */
+/* CORREÇÃO CRÍTICA PDF: Faz os inputs se comportarem como blocos de texto com quebra de linha */
+.print-mode .cell-client input {
+    height: auto;           /* Permite que a altura do input cresça conforme o conteúdo */
+    white-space: normal;    /* Permite a quebra de linha do texto */
+    word-break: break-word; /* Força a quebra de palavras muito longas para evitar overflow */
+    line-height: 1.3;       /* Melhora a legibilidade do texto quebrado em várias linhas */
+    padding: 0;
+}
 
-.print-mode .status-control {
-    gap: 4px; /* AJUSTE PDF: Reduz o espaço entre data e botão */
-}
-.print-mode .status-button {
-    width: 14px; /* AJUSTE PDF: Diminui o botão de status */
-    height: 14px; /* AJUSTE PDF: Diminui o botão de status */
-}
-.print-mode .status-button::before {
-    font-size: 9pt !important; /* AJUSTE PDF: Ajusta o ícone (✓, X) para o novo tamanho */
-    line-height: 12px !important;
-}
-.print-mode .status-date-input {
-    font-size: 8pt;
-    width: 40px; /* AJUSTE PDF: Diminui o campo de data */
-    padding: 2px;
-}
+.print-mode .os-number-input { font-size: 10pt; font-weight: 600; margin-bottom: 2px; }
+.print-mode .client-name-input { font-size: 9pt; color: #333; }
+.print-mode .status-control { gap: 4px; }
+.print-mode .status-button { width: 14px; height: 14px; }
+.print-mode .status-button::before { font-size: 9pt !important; line-height: 12px !important; }
+.print-mode .status-date-input { font-size: 8pt; width: 40px; padding: 2px; }
 
 @media (max-width: 992px) { /* etc... */ }
