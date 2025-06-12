@@ -72,18 +72,40 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .sector-task-execution-date, .sector-task-delivery { color: var(--text-muted); font-size: 14px; min-width: 130px; }
 .sector-task-action { margin-left: auto; padding-left: 1rem; }
 
-/* Estilos para o modo de impressão condensado */
+/* --- ESTILOS PARA O MODO DE IMPRESSÃO CONDENSADO (PDF) --- */
 body.print-mode { background: #fff !important; }
 .print-mode .kanban-board { max-width: 100%; box-shadow: none; border: none; }
 .print-mode .board-title-header, .print-mode .header-placeholder { display: none !important; }
 .print-mode .kanban-table { min-width: auto; overflow: visible; }
-.print-mode .kanban-header, .print-mode .kanban-row { font-size: 8pt; grid-template-columns: 2fr repeat(8, 1fr); gap: 8px; padding: 6px 4px; }
-.print-mode .kanban-header { position: static !important; } /* Reseta o sticky header */
-.print-mode .cell:first-child, .print-mode .header-cell:first-child, .print-mode .cell:last-child, .print-mode .header-cell:last-child { display: none; } /* Oculta colunas de arrastar e ações */
+
+.print-mode .kanban-header, .print-mode .kanban-row {
+    font-size: 9pt; /* AJUSTE PDF: Aumenta a fonte base para legibilidade */
+    /* AJUSTE PDF: A mudança mais importante! Dá muito mais espaço para a coluna de cliente. */
+    grid-template-columns: 3.5fr repeat(8, 1fr); 
+    gap: 4px; /* AJUSTE PDF: Reduz o espaçamento entre colunas */
+    padding: 6px 4px;
+}
+.print-mode .kanban-header { position: static !important; }
+.print-mode .cell:first-child, .print-mode .header-cell:first-child, .print-mode .cell:last-child, .print-mode .header-cell:last-child { display: none; }
+
 .print-mode .os-number-input { font-size: 10pt; }
-.print-mode .client-name-input { font-size: 8pt; }
-.print-mode .status-button { width: 16px; height: 16px; }
-.print-mode .status-button::before { font-size: 10pt !important; line-height: 14px !important; }
-.print-mode .status-date-input { font-size: 8pt; width: 45px; padding: 2px; }
+.print-mode .client-name-input { font-size: 9pt; } /* AJUSTE PDF: Aumenta fonte do cliente */
+
+.print-mode .status-control {
+    gap: 4px; /* AJUSTE PDF: Reduz o espaço entre data e botão */
+}
+.print-mode .status-button {
+    width: 14px; /* AJUSTE PDF: Diminui o botão de status */
+    height: 14px; /* AJUSTE PDF: Diminui o botão de status */
+}
+.print-mode .status-button::before {
+    font-size: 9pt !important; /* AJUSTE PDF: Ajusta o ícone (✓, X) para o novo tamanho */
+    line-height: 12px !important;
+}
+.print-mode .status-date-input {
+    font-size: 8pt;
+    width: 40px; /* AJUSTE PDF: Diminui o campo de data */
+    padding: 2px;
+}
 
 @media (max-width: 992px) { /* etc... */ }
