@@ -3,7 +3,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebas
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // --- Configuração do Firebase ---
-// Mantenha aqui a sua configuração original
 const firebaseConfig = {
   apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
   authDomain: "kanban-board-92ce7.firebaseapp.com",
@@ -64,15 +63,10 @@ const renderAllTasks = (tasksToRender) => {
 };
 
 // --- Funções Auxiliares ---
-// Converte data dd/mm para um formato que ordena corretamente (yyyy-mm-dd)
 function convertDateToSortable(dateStr) {
-    if (!dateStr || !dateStr.includes('/')) {
-        return '9999-12-31'; // Datas vazias ou inválidas vão para o final
-    }
+    if (!dateStr || !dateStr.includes('/')) return '9999-12-31';
     const parts = dateStr.split('/');
-    if (parts.length < 2 || isNaN(parseInt(parts[0])) || isNaN(parseInt(parts[1]))) {
-        return '9999-12-31'; // Data mal formatada
-    }
+    if (parts.length < 2 || isNaN(parseInt(parts[0])) || isNaN(parseInt(parts[1]))) return '9999-12-31';
     const day = parts[0].padStart(2, '0');
     const month = parts[1].padStart(2, '0');
     const year = (parts[2] && parts[2].length === 4) ? parts[2] : new Date().getFullYear();
@@ -80,52 +74,48 @@ function convertDateToSortable(dateStr) {
 }
 
 // --- Carregamento e Migração de Dados em Tempo Real ---
-// A query principal agora ordena por data de entrega e depois pela ordem manual.
 const q = query(tasksCollection, orderBy("deliveryDate", "asc"), orderBy("order", "asc"));
 
 onSnapshot(q, (snapshot) => {
     const batch = writeBatch(db);
     let updatesNeeded = 0;
 
-    tasks = snapshot.docs.map(doc => {
-        const data = doc.data();
+    // AQUI ESTÁ A CORREÇÃO PRINCIPAL: troquei 'doc' por 'documentSnapshot' para evitar o conflito de nomes.
+    tasks = snapshot.docs.map(documentSnapshot => {
+        const data = documentSnapshot.data();
         let needsUpdate = false;
+        const updates = {}; // Objeto para armazenar apenas o que precisa ser atualizado
 
-        // --- LÓGICA DE MIGRAÇÃO E CORREÇÃO AUTOMÁTICA ---
-        // 1. Garante que 'deliveryDate' existe para ordenação. Se não existir, cria-o.
+        // LÓGICA DE MIGRAÇÃO: Verifica se os campos necessários existem
         if (data.deliveryDate === undefined) {
             const entregaStatus = data.statuses.find(s => s.id === 'entrega');
-            data.deliveryDate = convertDateToSortable(entregaStatus?.date || '');
+            updates.deliveryDate = convertDateToSortable(entregaStatus?.date || '');
+            needsUpdate = true;
+        }
+        if (data.order === undefined) {
+            updates.order = 0; // Valor padrão
             needsUpdate = true;
         }
 
-        // 2. Garante que o status 'corte' existe. Se não existir, adiciona-o.
-        const hasCorte = data.statuses.some(s => s.id === 'corte');
-        if (!hasCorte) {
-            const newCorteStatus = { id: 'corte', label: 'Corte', state: 'state-pending', date: '' };
-            const acabamentoIndex = data.statuses.findIndex(s => s.id === 'acabamento');
-            data.statuses.splice(acabamentoIndex + 1, 0, newCorteStatus);
-            needsUpdate = true;
-        }
-        
-        // Se uma atualização for necessária, adiciona ao batch para ser salvo de uma vez.
+        // Se algo precisar ser atualizado, adiciona ao batch
         if (needsUpdate) {
-            console.log(`Agendando atualização para a tarefa ${doc.id} (migração de dados).`);
-            const docRef = doc(db, "tasks", doc.id);
-            batch.update(docRef, { statuses: data.statuses, deliveryDate: data.deliveryDate });
+            console.log(`Agendando atualização para a tarefa ${documentSnapshot.id} (migração de dados).`);
+            // Agora, a função 'doc' do Firestore funciona porque não há conflito de nome!
+            const docRef = doc(db, "tasks", documentSnapshot.id); 
+            batch.update(docRef, updates);
             updatesNeeded++;
         }
 
-        return { id: doc.id, ...data };
+        // Retorna os dados para a renderização, mesmo que a atualização ainda não tenha sido enviada
+        return { id: documentSnapshot.id, ...data, ...updates }; // Mescla os updates para renderização imediata
     });
 
-    // Se houver atualizações pendentes, envia todas de uma vez para o Firebase.
     if (updatesNeeded > 0) {
-        console.log(`Executando ${updatesNeeded} atualizações em batch...`);
+        console.log(`Enviando ${updatesNeeded} atualizações em lote...`);
         batch.commit().then(() => {
-            console.log("Migração de dados concluída com sucesso.");
+            console.log("Migração de dados em lote concluída com sucesso.");
         }).catch(err => {
-            console.error("Erro ao executar a migração de dados em batch:", err);
+            console.error("Erro ao executar a migração de dados em lote:", err);
         });
     }
 
@@ -133,16 +123,17 @@ onSnapshot(q, (snapshot) => {
     console.log("Dados carregados/atualizados do Firebase.");
 }, (error) => {
     console.error("ERRO GRAVE AO CARREGAR DADOS:", error);
-    kanbanBody.innerHTML = `<p style="text-align: center; color: red; padding: 20px; font-weight: bold;">Erro ao carregar os dados. Verifique o console para mais detalhes (F12) e certifique-se de que o índice do Firestore foi criado corretamente na aba 'Índices' do seu banco de dados.</p>`;
+    kanbanBody.innerHTML = `<p style="text-align: center; color: red; padding: 20px; font-weight: bold;">Erro ao carregar os dados. Verifique o console para mais detalhes (F12).</p>`;
 });
 
-// --- Lógica de Eventos ---
+
+// --- Lógica de Eventos (O restante do código permanece o mesmo) ---
 
 addRowButton.addEventListener('click', async () => {
-    const newOrder = tasks.length;
+    const newOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order)) + 1 : 0;
     await addDoc(tasksCollection, {
         clientName: "Novo Cliente", osNumber: "OS: Nova", order: newOrder,
-        deliveryDate: '9999-12-31', // Data padrão para ordenação de novos itens
+        deliveryDate: '9999-12-31',
         statuses: [
             { id: 'compras', label: 'Compras', state: 'state-pending', date: '' },
             { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
@@ -205,7 +196,6 @@ kanbanBody.addEventListener('change', async (event) => {
         
         const updateData = { statuses: newStatuses };
 
-        // Se a data de entrega for alterada, atualiza o campo de ordenação.
         if (statusId === 'entrega') {
             updateData.deliveryDate = convertDateToSortable(input.value);
         }
