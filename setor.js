@@ -143,13 +143,12 @@ taskListContainer.addEventListener('click', async (event) => {
 
         const taskData = docSnap.data();
         
-        // *** ESTA É A CORREÇÃO CRÍTICA NA GRAVAÇÃO ***
-        // 1. "Cura" a lista de status lida do banco para garantir que ela esteja completa.
+        // "Cura" a lista de status lida do banco para garantir que ela esteja completa.
         const completeStatuses = healStatuses(taskData.statuses);
         
         const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked'];
         
-        // 2. Mapeia sobre a lista COMPLETA para fazer a alteração.
+        // Mapeia sobre a lista COMPLETA para fazer a alteração.
         const newStatuses = completeStatuses.map(status => {
             if (status.id === sectorId) {
                 const currentIndex = states.indexOf(status.state);
@@ -159,7 +158,7 @@ taskListContainer.addEventListener('click', async (event) => {
             return status;
         });
 
-        // 3. Salva a lista COMPLETA e modificada de volta no banco.
+        // Salva a lista COMPLETA e modificada de volta no banco.
         await updateDoc(docRef, { statuses: newStatuses });
 
     } catch (error) {
