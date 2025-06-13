@@ -1,166 +1,107 @@
---- START OF FILE setor.js ---
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
-    authDomain: "kanban-board-92ce7.firebaseapp.com",
-    projectId: "kanban-board-92ce7",
-    storageBucket: "kanban-board-92ce7.appspot.com",
-    messagingSenderId: "494809291125",
-    appId: "1:494809291125:web:17f9eefa4287d39174db3c"
+  apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
+  authDomain: "kanban-board-92ce7.firebaseapp.com",
+  projectId: "kanban-board-92ce7",
+  storageBucket: "kanban-board-92ce7.appspot.com",
+  messagingSenderId: "494809291125",
+  appId: "1:494809291125:web:17f9eefa4287d39174db3c"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const tasksCollection = collection(db, "tasks");
 
-const taskListContainer = document.getElementById('tasks-list');
-const sectorTitleElement = document.getElementById('sector-title');
-const pageTitleElement = document.querySelector('title');
-
 const urlParams = new URLSearchParams(window.location.search);
-const sectorId = urlParams.get('setor');
-const sectorName = urlParams.get('nome') || sectorId;
+const setorId = urlParams.get("setor");
+const setorNome = urlParams.get("nome");
 
-const canonicalStatuses = [
-    { id: 'compras', label: 'Compras' },
-    { id: 'arte', label: 'Arte Final' },
-    { id: 'impressao', label: 'Impressão' },
-    { id: 'acabamento', label: 'Acabamento' },
-    { id: 'corte', label: 'Corte' },
-    { id: 'faturamento', label: 'Faturamento' },
-    { id: 'instalacao', label: 'Instalação' },
-    { id: 'entrega', label: 'Entrega' }
-];
+document.getElementById("setor-title").textContent = `Tarefas do setor: ${setorNome}`;
+const container = document.getElementById("tarefas-do-setor");
 
-function healStatuses(statusesArray = []) {
-    // Mantendo sua função healStatuses original, que sabemos que não quebra a conexão.
-    return canonicalStatuses.map(canonical => {
-        const existing = (statusesArray || []).find(s => s.id === canonical.id);
-        return {
-            id: canonical.id,
-            label: canonical.label,
-            state: existing?.state || 'state-pending',
-            date: existing?.date || ''
-        };
-    });
+function hojeFormatado() {
+  const hoje = new Date();
+  const dia = String(hoje.getDate()).padStart(2, '0');
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  return `${dia}/${mes}`;
 }
 
-function formatDisplayDate(dateStr) {
-    if (!dateStr || dateStr.startsWith('9999')) return 'N/D';
-    const parts = dateStr.split('-');
-    if (parts.length < 3) return dateStr;
-    return `${parts[2]}/${parts[1]}`;
+function healStatuses(statuses = []) {
+  const ids = ["compras", "arte", "impressao", "acabamento", "corte", "faturamento", "instalacao", "entrega"];
+  return ids.map(id => {
+    const existing = statuses.find(s => s.id === id);
+    return {
+      id,
+      label: id.charAt(0).toUpperCase() + id.slice(1),
+      state: existing?.state || "state-pending",
+      date: existing?.date || ""
+    };
+  });
 }
 
-if (!sectorId) {
-    sectorTitleElement.textContent = "Erro: Setor não especificado.";
-} else {
-    sectorTitleElement.textContent = `Painel do Setor: ${sectorName}`;
-    pageTitleElement.textContent = `Painel: ${sectorName}`;
-    loadSectorTasks();
+function createTarefaCard(task, status) {
+  const card = document.createElement("div");
+  card.className = "sector-task-card";
+
+  const dataExec = status.date || hojeFormatado();
+
+  card.innerHTML = `
+    <div class="sector-task-os">${task.osNumber || "OS?"}</div>
+    <div class="sector-task-client">${task.clientName || "Cliente?"}</div>
+    <div class="sector-task-execution-date">Exec.: ${dataExec}</div>
+    <div class="sector-task-action">
+      <button class="status-button ${status.state}" title="Marcar como feito" data-id="${task.id}" data-status="${status.id}"></button>
+    </div>
+  `;
+
+  return card;
 }
 
-function renderTasks(tasksToRender) {
-    if (tasksToRender.length === 0) {
-        taskListContainer.innerHTML = '<p class="no-tasks-message">Nenhuma tarefa pendente para este setor no momento.</p>';
-        return;
+onSnapshot(tasksCollection, (snapshot) => {
+  container.innerHTML = "";
+  snapshot.docs.forEach(docSnap => {
+    const task = { id: docSnap.id, ...docSnap.data() };
+    const statuses = healStatuses(task.statuses);
+    const currentStatus = statuses.find(s => s.id === setorId);
+
+    if (!currentStatus) return;
+
+    const isAguardando = currentStatus.state === "state-in-progress";
+    const isSemStatus = currentStatus.state === "state-pending";
+
+    if (isAguardando || isSemStatus) {
+      const card = createTarefaCard(task, currentStatus);
+      container.appendChild(card);
     }
-    taskListContainer.innerHTML = '';
-    tasksToRender.forEach(task => {
-        const sectorStatus = task.statuses.find(s => s.id === sectorId);
-        if (!sectorStatus) return;
-        let executionDate = sectorStatus.date || 'Sem data';
-        const taskElement = document.createElement('div');
-        taskElement.className = 'sector-task-card';
-        taskElement.dataset.docId = task.id;
-        taskElement.innerHTML = `
-            <span class="sector-task-os">${task.osNumber}</span>
-            <span class="sector-task-client">${task.clientName}</span>
-            <span class="sector-task-execution-date">Execução: ${executionDate}</span>
-            <span class="sector-task-delivery">Entrega: ${task.deliveryDateDisplay}</span>
-            <div class="sector-task-action">
-                <button class="status-button ${sectorStatus.state}" title="Clique para alterar o status"></button>
-            </div>`;
-        taskListContainer.appendChild(taskElement);
-    });
-}
+  });
+});
 
-function loadSectorTasks() {
-    // Pega o índice do setor atual para saber quais são as etapas "anteriores"
-    const currentSectorIndex = canonicalStatuses.findIndex(s => s.id === sectorId);
+container.addEventListener("click", async (event) => {
+  const button = event.target.closest(".status-button");
+  if (!button) return;
 
-    const q = query(tasksCollection, orderBy("deliveryDate"));
+  const docId = button.dataset.id;
+  const statusId = button.dataset.status;
+  const taskRef = doc(db, "tasks", docId);
+  const snap = await getDoc(taskRef);
 
-    onSnapshot(q, (snapshot) => {
-        const allTasks = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id, ...data, statuses: healStatuses(data.statuses),
-                deliveryDateDisplay: formatDisplayDate(data.deliveryDate)
-            };
-        });
-        
-        // --- LÓGICA DE FILTRO CORRIGIDA ---
-        const filteredTasks = allTasks.filter(task => {
-            // 1. A tarefa é relevante para este painel? (Seu status aqui é 'pending' ou 'in-progress'?)
-            const sectorStatus = task.statuses.find(s => s.id === sectorId);
-            const isRelevant = sectorStatus && (sectorStatus.state === 'state-pending' || sectorStatus.state === 'state-in-progress');
-            
-            if (!isRelevant) {
-                return false; // Se não for relevante, já descarta.
-            }
+  if (!snap.exists()) return;
 
-            // 2. Se for relevante, existe alguma etapa ANTERIOR que esteja bloqueada?
-            for (let i = 0; i < currentSectorIndex; i++) {
-                if (task.statuses[i] && task.statuses[i].state === 'state-blocked') {
-                    return false; // Sim, existe um bloqueio anterior. Descarta.
-                }
-            }
+  const data = snap.data();
+  const statuses = healStatuses(data.statuses);
 
-            // 3. Se a tarefa é relevante E não há bloqueios anteriores, ela deve ser exibida!
-            return true;
-        });
-
-        renderTasks(filteredTasks);
-    }, (error) => {
-        console.error("Erro ao carregar tarefas do setor: ", error);
-        taskListContainer.innerHTML = '<p class="error-message">Não foi possível carregar as tarefas.</p>';
-    });
-}
-
-// Event listener (sem alterações)
-taskListContainer.addEventListener('click', async (event) => {
-    const button = event.target.closest('.status-button');
-    if (!button) return;
-
-    const card = button.closest('.sector-task-card');
-    const docId = card.dataset.docId;
-    const docRef = doc(db, "tasks", docId);
-
-    try {
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) return;
-
-        const taskData = docSnap.data();
-        const completeStatuses = healStatuses(taskData.statuses);
-        const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked'];
-        
-        const newStatuses = completeStatuses.map(status => {
-            if (status.id === sectorId) {
-                const currentIndex = states.indexOf(status.state);
-                const nextIndex = (currentIndex + 1) % states.length;
-                return { ...status, state: states[nextIndex] };
-            }
-            return status;
-        });
-
-        await updateDoc(docRef, { statuses: newStatuses });
-
-    } catch (error) {
-        console.error("Erro ao atualizar o status: ", error);
-        alert("Ocorreu um erro ao tentar atualizar a tarefa.");
+  const updatedStatuses = statuses.map(s => {
+    if (s.id === statusId) {
+      return {
+        ...s,
+        state: "state-done",
+        date: s.date || hojeFormatado()
+      };
     }
+    return s;
+  });
+
+  await updateDoc(taskRef, { statuses: updatedStatuses });
 });

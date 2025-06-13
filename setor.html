@@ -1,30 +1,43 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Setor</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Setor</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .setor-page-container {
+      max-width: 960px;
+      margin: 2rem auto;
+    }
+    .setor-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+    }
+    .voltar-button {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 8px 16px;
+      background-color: var(--primary-color);
+      color: #fff;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .voltar-button:hover {
+      background-color: #0b5ed7;
+    }
+  </style>
 </head>
 <body>
-    <div class="kanban-board sector-board">
-        <div class="board-title-header">
-            <h1 id="sector-title">Carregando painel...</h1>
-            <a href="index.html" class="back-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-4.5-.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
-                  </svg>
-                <span>Voltar ao Quadro Principal</span>
-            </a>
-        </div>
-        <main id="tasks-list">
-            <p>Aguardando tarefas...</p>
-        </main>
-    </div>
+  <div class="setor-page-container">
+    <a href="index.html" class="voltar-button">← Voltar ao Principal</a>
+    <h1 id="setor-title" class="setor-title">Setor</h1>
+    <div id="tarefas-do-setor"></div>
+  </div>
 
-    <script type="module" src="setor.js" defer></script>
+  <script type="module" src="setor.js"></script>
 </body>
 </html>
