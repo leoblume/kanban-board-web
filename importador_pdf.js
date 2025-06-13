@@ -1,5 +1,3 @@
---- START OF FILE importador_pdf.js ---
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
@@ -101,7 +99,6 @@ async function getOsFromPdf(file) {
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const content = await page.getTextContent();
-                    // Ordena o texto para reconstruir a ordem das linhas corretamente
                     const sortedItems = content.items.sort((a, b) => (Math.abs(a.transform[5] - b.transform[5]) > 5) ? b.transform[5] - a.transform[5] : a.transform[4] - b.transform[4]);
                     fullText += sortedItems.map(item => item.str).join(' ');
                 }
