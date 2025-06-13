@@ -24,6 +24,18 @@ const urlParams = new URLSearchParams(window.location.search);
 const sectorId = urlParams.get('setor');
 const sectorName = urlParams.get('nome') || sectorId;
 
+// *** CHAVE DA CORREÇÃO: A mesma lista de status canônicos da página principal ***
+const canonicalStatuses = [
+    { id: 'compras', label: 'Compras' },
+    { id: 'arte', label: 'Arte Final' },
+    { id: 'impressao', label: 'Impressão' },
+    { id: 'acabamento', label: 'Acabamento' },
+    { id: 'corte', label: 'Corte' },
+    { id: 'faturamento', label: 'Faturamento' },
+    { id: 'instalacao', label: 'Instalação' },
+    { id: 'entrega', label: 'Entrega' }
+];
+
 // Função auxiliar para formatar a data para exibição (yyyy-mm-dd -> dd/mm)
 function formatDisplayDate(dateStr) {
     if (!dateStr || dateStr.startsWith('9999')) return 'N/D';
@@ -49,7 +61,8 @@ function renderTasks(tasksToRender) {
     taskListContainer.innerHTML = ''; // Limpa a lista
     tasksToRender.forEach(task => {
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
-        if (!sectorStatus) return;
+        // Esta verificação agora é quase redundante por causa da auto-correção, mas é uma boa prática
+        if (!sectorStatus) return; 
 
         let executionDate;
         if (sectorStatus.date) {
@@ -82,19 +95,32 @@ function loadSectorTasks() {
     const q = query(tasksCollection, orderBy("deliveryDate"));
 
     onSnapshot(q, (snapshot) => {
-        const allTasks = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            deliveryDateDisplay: formatDisplayDate(doc.data().deliveryDate)
-        }));
+        // *** CHAVE DA CORREÇÃO: Aplicando a mesma lógica de "auto-correção" aqui ***
+        const allTasks = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const existingStatuses = data.statuses || [];
 
-        // *** LÓGICA DE FILTRAGEM CORRIGIDA E ROBUSTA ***
+            // Garante que todos os status canônicos existam na tarefa, adicionando como 'pending' se faltar.
+            const healedStatuses = canonicalStatuses.map(canonical => {
+                const existing = existingStatuses.find(s => s.id === canonical.id);
+                return {
+                    id: canonical.id,
+                    label: canonical.label,
+                    state: existing?.state || 'state-pending',
+                    date: existing?.date || ''
+                };
+            });
+
+            return {
+                id: doc.id,
+                ...data,
+                statuses: healedStatuses, // Usa a lista de status corrigida
+                deliveryDateDisplay: formatDisplayDate(data.deliveryDate)
+            };
+        });
+        
+        // Agora, esta filtragem vai funcionar perfeitamente porque os dados são consistentes.
         const filteredTasks = allTasks.filter(task => {
-            // Adiciona uma verificação para garantir que 'statuses' existe e é um array.
-            if (!task.statuses || !Array.isArray(task.statuses)) {
-                return false; 
-            }
-
             // Regra 1: Ignora a tarefa se QUALQUER etapa estiver bloqueada.
             const isBlocked = task.statuses.some(s => s.state === 'state-blocked');
             if (isBlocked) {
@@ -104,13 +130,9 @@ function loadSectorTasks() {
             // Regra 2: Encontra o status específico para o setor desta página.
             const sectorStatus = task.statuses.find(s => s.id === sectorId);
 
-            // Regra 3: Se o status não for encontrado para este setor, ignora a tarefa.
-            if (!sectorStatus) {
-                return false;
-            }
-
-            // Regra 4: A tarefa só é incluída se o status do setor for 'pendente' OU 'em andamento'.
-            return sectorStatus.state === 'state-pending' || sectorStatus.state === 'state-in-progress';
+            // Regra 3: A tarefa só é incluída se o status do setor for 'pendente' OU 'em andamento'.
+            // A verificação 'if (!sectorStatus)' não é mais estritamente necessária, pois a correção acima garante que ele sempre existirá.
+            return sectorStatus && (sectorStatus.state === 'state-pending' || sectorStatus.state === 'state-in-progress');
         });
 
         renderTasks(filteredTasks);
