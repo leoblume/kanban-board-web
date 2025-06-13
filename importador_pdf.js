@@ -1,3 +1,5 @@
+--- START OF FILE importador_pdf.js ---
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
@@ -24,7 +26,7 @@ const deletionArea = document.getElementById('deletionArea');
 const deleteList = document.getElementById('deleteList');
 const deleteButton = document.getElementById('deleteButton');
 
-// Lógica de extração e sincronização totalmente refeita
+// Lógica de extração e sincronização
 window.extractData = async function () {
   const file = fileInput.files[0];
   if (!file) {
@@ -32,7 +34,6 @@ window.extractData = async function () {
     return;
   }
 
-  // --- Feedback visual para o usuário ---
   importButton.disabled = true;
   importButton.textContent = "Processando...";
   resultArea.style.display = 'block';
@@ -40,27 +41,20 @@ window.extractData = async function () {
   deletionArea.style.display = 'none';
 
   try {
-    // ETAPA 1: Extrair OS do PDF
     const pdfOsDataMap = await getOsFromPdf(file);
     resultArea.innerHTML = `PDF lido. ${pdfOsDataMap.size} OS encontradas. Comparando com o banco de dados...`;
     
-    // ETAPA 2: Buscar todos os dados do Firebase
     const dbTasksSnapshot = await getDocs(tasksCollection);
     const dbTasks = dbTasksSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    // ETAPA 3: Processar atualizações e novas entradas
     const { updatedCount, importedCount, importLogHTML } = await processPdfTasks(pdfOsDataMap, dbTasks);
 
-    // ETAPA 4: Identificar tarefas para exclusão
     const tasksToDelete = dbTasks.filter(task => {
-      // Regra 1: Não está no PDF
       const notInPdf = !pdfOsDataMap.has(task.osNumber);
-      // Regra 2: Não é uma entrada manual (ignora OS com 5 digitos começando com '1')
       const isManualEntry = task.osNumber && task.osNumber.startsWith('1') && task.osNumber.length === 5;
       return notInPdf && !isManualEntry;
     });
 
-    // ETAPA 5: Renderizar os resultados
     resultArea.innerHTML = `<h3>Resultados da Sincronização</h3>
                             <p><strong>Total de itens processados no PDF: ${pdfOsDataMap.size}</strong></p>
                             <ul>
@@ -104,11 +98,15 @@ async function getOsFromPdf(file) {
                 }
                 
                 fullText = fullText.replace(/Total OSs.*?:\s*\d+/g, '').replace(/\s{2,}/g, ' ');
-                const regex = /(\d{5})\s+(.*?)\s+PRO\s+.*?(\d{2}\/\d{2}\/\d{4})/g;
+
+                // --- ALTERADO: Regex agora busca por "PREV. ENTR" para garantir a data correta ---
+                // Ele captura: 1. OS | 2. Cliente/Descrição | 3. A data DEPOIS de "PREV. ENTR"
+                const regex = /(\d{5})\s+(.*?)\s+PRO\s+.*?PREV\.\s?ENTR.*?\s+(\d{2}\/\d{2}\/\d{4})/g;
                 
                 const osDataMap = new Map();
                 let match;
                 while ((match = regex.exec(fullText)) !== null) {
+                    // O grupo de captura 3 agora é a data correta de "PREV. ENTR"
                     osDataMap.set(match[1], { os: match[1], clientAndDesc: match[2].trim(), prevEnt: match[3] });
                 }
                 resolve(osDataMap);
@@ -150,10 +148,10 @@ async function processPdfTasks(pdfOsDataMap, dbTasks) {
             updatedCount++;
         } else {
             // Adiciona novo
-            const newDocRef = doc(collection(db, "tasks")); // Cria referência para novo doc
+            const newDocRef = doc(collection(db, "tasks"));
             batch.set(newDocRef, {
                 osNumber: os, clientName, description,
-                order: Date.now() + importedCount, // Garante ordem única
+                order: Date.now() + importedCount,
                 deliveryDate: convertDateToSortable(prevEnt),
                 statuses: healStatuses([{ id: 'entrega', date: prevEnt }])
             });
@@ -206,7 +204,6 @@ deleteButton.addEventListener('click', async () => {
     try {
         await batch.commit();
         alert(`${checkboxes.length} item(ns) removido(s) com sucesso!`);
-        // Limpa a UI após a remoção
         deletionArea.innerHTML = '<h2>Itens não encontrados no PDF</h2><p>✅ Itens selecionados foram removidos com sucesso.</p>';
         deleteButton.style.display = 'none';
     } catch (error) {
@@ -219,7 +216,7 @@ deleteButton.addEventListener('click', async () => {
 });
 
 
-// --- Funções Auxiliares ---
+// --- Funções Auxiliares (sem alterações) ---
 const canonicalStatuses = [ { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' }, { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' }, { id: 'corte', label: 'Corte' }, { id: 'faturamento', label: 'Faturamento' }, { id: 'instalacao', label: 'Instalação' }, { id: 'entrega', label: 'Entrega' }];
 
 function healStatuses(statusesArray = []) {
