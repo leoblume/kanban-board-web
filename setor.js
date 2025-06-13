@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
@@ -21,6 +21,13 @@ const setorNome = urlParams.get("nome");
 document.getElementById("setor-title").textContent = `Tarefas do setor: ${setorNome}`;
 const container = document.getElementById("tarefas-do-setor");
 
+function hojeFormatado() {
+  const hoje = new Date();
+  const dia = String(hoje.getDate()).padStart(2, '0');
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  return `${dia}/${mes}`;
+}
+
 function healStatuses(statuses = []) {
   const ids = ["compras", "arte", "impressao", "acabamento", "corte", "faturamento", "instalacao", "entrega"];
   return ids.map(id => {
@@ -38,12 +45,14 @@ function createTarefaCard(task, status) {
   const card = document.createElement("div");
   card.className = "sector-task-card";
 
+  const dataExec = status.date || hojeFormatado();
+
   card.innerHTML = `
     <div class="sector-task-os">${task.osNumber || "OS?"}</div>
     <div class="sector-task-client">${task.clientName || "Cliente?"}</div>
-    <div class="sector-task-execution-date">Exec.: ${status.date || "--/--"}</div>
+    <div class="sector-task-execution-date">Exec.: ${dataExec}</div>
     <div class="sector-task-action">
-      <button class="status-button ${status.state}" title="Alterar status" data-id="${task.id}" data-status="${status.id}"></button>
+      <button class="status-button ${status.state}" title="Marcar como feito" data-id="${task.id}" data-status="${status.id}"></button>
     </div>
   `;
 
@@ -75,19 +84,24 @@ container.addEventListener("click", async (event) => {
 
   const docId = button.dataset.id;
   const statusId = button.dataset.status;
+  const taskRef = doc(db, "tasks", docId);
+  const snap = await getDoc(taskRef);
 
-  const taskDoc = doc(db, "tasks", docId);
-  const docSnap = await (await taskDoc.get()).data();
-  const statuses = healStatuses(docSnap.statuses);
+  if (!snap.exists()) return;
 
-  const newStatuses = statuses.map(s => {
+  const data = snap.data();
+  const statuses = healStatuses(data.statuses);
+
+  const updatedStatuses = statuses.map(s => {
     if (s.id === statusId) {
-      const cycle = ["state-pending", "state-in-progress", "state-done", "state-blocked"];
-      const nextState = cycle[(cycle.indexOf(s.state) + 1) % cycle.length];
-      return { ...s, state: nextState };
+      return {
+        ...s,
+        state: "state-done",
+        date: s.date || hojeFormatado()
+      };
     }
     return s;
   });
 
-  await updateDoc(taskDoc, { statuses: newStatuses });
+  await updateDoc(taskRef, { statuses: updatedStatuses });
 });
