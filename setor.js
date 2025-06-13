@@ -36,9 +36,9 @@ const canonicalStatuses = [
 ];
 
 function healStatuses(statusesArray = []) {
-    // CORREÇÃO SUTIL: Garante que mesmo que statusesArray seja nulo ou undefined, não quebre.
+    // Mantendo sua função healStatuses original, que sabemos que não quebra a conexão.
     return canonicalStatuses.map(canonical => {
-        const existing = statusesArray ? statusesArray.find(s => s.id === canonical.id) : null;
+        const existing = (statusesArray || []).find(s => s.id === canonical.id);
         return {
             id: canonical.id,
             label: canonical.label,
@@ -68,18 +68,14 @@ function renderTasks(tasksToRender) {
         taskListContainer.innerHTML = '<p class="no-tasks-message">Nenhuma tarefa pendente para este setor no momento.</p>';
         return;
     }
-
     taskListContainer.innerHTML = '';
     tasksToRender.forEach(task => {
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
         if (!sectorStatus) return;
-
         let executionDate = sectorStatus.date || 'Sem data';
-        
         const taskElement = document.createElement('div');
         taskElement.className = 'sector-task-card';
         taskElement.dataset.docId = task.id;
-
         taskElement.innerHTML = `
             <span class="sector-task-os">${task.osNumber}</span>
             <span class="sector-task-client">${task.clientName}</span>
@@ -87,13 +83,13 @@ function renderTasks(tasksToRender) {
             <span class="sector-task-delivery">Entrega: ${task.deliveryDateDisplay}</span>
             <div class="sector-task-action">
                 <button class="status-button ${sectorStatus.state}" title="Clique para alterar o status"></button>
-            </div>
-        `;
+            </div>`;
         taskListContainer.appendChild(taskElement);
     });
 }
 
 function loadSectorTasks() {
+    // Pega o índice do setor atual para saber quais são as etapas "anteriores"
     const currentSectorIndex = canonicalStatuses.findIndex(s => s.id === sectorId);
 
     const q = query(tasksCollection, orderBy("deliveryDate"));
@@ -107,29 +103,26 @@ function loadSectorTasks() {
             };
         });
         
-        // --- INÍCIO DA CORREÇÃO ---
+        // --- LÓGICA DE FILTRO CORRIGIDA ---
         const filteredTasks = allTasks.filter(task => {
-            // REGRA 1 (PRINCIPAL): A tarefa deve estar ativa ('pending' ou 'in-progress') NESTE setor.
+            // 1. A tarefa é relevante para este painel? (Seu status aqui é 'pending' ou 'in-progress'?)
             const sectorStatus = task.statuses.find(s => s.id === sectorId);
-
-            // Se o status não for encontrado ou não estiver ativo, a tarefa é removida.
-            if (!sectorStatus || (sectorStatus.state !== 'state-pending' && sectorStatus.state !== 'state-in-progress')) {
-                return false;
+            const isRelevant = sectorStatus && (sectorStatus.state === 'state-pending' || sectorStatus.state === 'state-in-progress');
+            
+            if (!isRelevant) {
+                return false; // Se não for relevante, já descarta.
             }
 
-            // REGRA 2 (BLOQUEIO): Se a tarefa passou na regra 1, agora verificamos se alguma etapa ANTERIOR está bloqueada.
-            // A função healStatuses garante que a ordem está correta para usarmos o índice.
+            // 2. Se for relevante, existe alguma etapa ANTERIOR que esteja bloqueada?
             for (let i = 0; i < currentSectorIndex; i++) {
-                if (task.statuses[i].state === 'state-blocked') {
-                    // Encontrou um bloqueio em uma etapa anterior, então remove a tarefa da lista.
-                    return false; 
+                if (task.statuses[i] && task.statuses[i].state === 'state-blocked') {
+                    return false; // Sim, existe um bloqueio anterior. Descarta.
                 }
             }
-            
-            // Se a tarefa está ativa e nenhuma etapa anterior está bloqueada, ela deve ser exibida!
+
+            // 3. Se a tarefa é relevante E não há bloqueios anteriores, ela deve ser exibida!
             return true;
         });
-        // --- FIM DA CORREÇÃO ---
 
         renderTasks(filteredTasks);
     }, (error) => {
@@ -138,7 +131,7 @@ function loadSectorTasks() {
     });
 }
 
-// Event listener para ciclar o status da tarefa (sem alterações)
+// Event listener (sem alterações)
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
