@@ -34,6 +34,7 @@ const canonicalStatuses = [
     { id: 'instalacao', label: 'Instalação' },
     { id: 'entrega', label: 'Entrega' }
 ];
+// Encontra o índice do setor atual no fluxo de trabalho. Essencial para a lógica de bloqueio.
 const sectorIndex = canonicalStatuses.findIndex(s => s.id === sectorId);
 
 function healStatuses(statusesArray = []) {
@@ -70,10 +71,10 @@ function renderTasks(tasksToRender) {
 
     taskListContainer.innerHTML = '';
     tasksToRender.forEach(task => {
+        // Como a lista já vem filtrada, temos certeza que o status existe.
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
-        if (!sectorStatus) return;
-
-        let executionDate = sectorStatus.date || 'Sem data';
+        
+        const executionDate = sectorStatus.date || 'Sem data';
         
         const taskElement = document.createElement('div');
         taskElement.className = 'sector-task-card';
@@ -105,22 +106,27 @@ function loadSectorTasks() {
             };
         });
         
-        // MODIFICADO: Lógica de filtro mais inteligente e robusta
+        // --- LÓGICA DE FILTRO CORRIGIDA E SIMPLIFICADA ---
         const filteredTasks = allTasks.filter(task => {
-            // A tarefa só é relevante para este setor se o status não for 'concluído'
-            const currentSectorStatus = task.statuses[sectorIndex];
-            if (currentSectorStatus.state === 'state-done') {
+            // A função 'healStatuses' garante que task.statuses está na ordem canônica.
+            // Isso torna o acesso por índice seguro e performático.
+            const sectorStatus = task.statuses[sectorIndex];
+
+            // REGRA 1 (PRINCIPAL): A tarefa deve estar ativa (Pendente ou Em Andamento) NESTE setor.
+            // Se não estiver, é ignorada imediatamente.
+            const isTaskActiveInSector = sectorStatus.state === 'state-pending' || sectorStatus.state === 'state-in-progress';
+            if (!isTaskActiveInSector) {
                 return false;
             }
 
-            // Verifica se alguma etapa ANTERIOR está bloqueada. Se sim, não mostra a tarefa.
+            // REGRA 2 (BLOQUEIO): Se a tarefa está ativa, agora verificamos se alguma etapa ANTERIOR está bloqueada.
             for (let i = 0; i < sectorIndex; i++) {
                 if (task.statuses[i].state === 'state-blocked') {
-                    return false;
+                    return false; // Encontrou um bloqueio em uma etapa anterior, então não mostrar.
                 }
             }
             
-            // Se passou por todas as verificações, a tarefa é válida para este painel.
+            // Se a tarefa está ativa neste setor E nenhuma etapa anterior está bloqueada, ela deve ser exibida.
             return true;
         });
 
@@ -131,7 +137,7 @@ function loadSectorTasks() {
     });
 }
 
-// Event listener para ciclar o status da tarefa (sem alterações, mas confirmado que funciona com a nova estrutura)
+// Event listener para ciclar o status da tarefa (sem alterações, funciona perfeitamente com a lógica corrigida)
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
