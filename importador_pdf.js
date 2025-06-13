@@ -1,5 +1,3 @@
---- START OF FILE importador_pdf.js ---
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
@@ -99,14 +97,11 @@ async function getOsFromPdf(file) {
                 
                 fullText = fullText.replace(/Total OSs.*?:\s*\d+/g, '').replace(/\s{2,}/g, ' ');
 
-                // --- ALTERADO: Regex agora busca por "PREV. ENTR" para garantir a data correta ---
-                // Ele captura: 1. OS | 2. Cliente/Descrição | 3. A data DEPOIS de "PREV. ENTR"
                 const regex = /(\d{5})\s+(.*?)\s+PRO\s+.*?PREV\.\s?ENTR.*?\s+(\d{2}\/\d{2}\/\d{4})/g;
                 
                 const osDataMap = new Map();
                 let match;
                 while ((match = regex.exec(fullText)) !== null) {
-                    // O grupo de captura 3 agora é a data correta de "PREV. ENTR"
                     osDataMap.set(match[1], { os: match[1], clientAndDesc: match[2].trim(), prevEnt: match[3] });
                 }
                 resolve(osDataMap);
@@ -133,7 +128,6 @@ async function processPdfTasks(pdfOsDataMap, dbTasks) {
         const existingTask = dbOsMap.get(os);
 
         if (existingTask) {
-            // Atualiza existente
             const docRef = doc(db, "tasks", existingTask.id);
             const currentStatuses = existingTask.statuses || [];
             const updatedStatuses = healStatuses(currentStatuses).map(s => s.id === "entrega" ? { ...s, date: prevEnt } : s);
@@ -147,7 +141,6 @@ async function processPdfTasks(pdfOsDataMap, dbTasks) {
             importLogHTML += `<li class="updated">🔄 Atualizado: OS ${os} - ${clientName} (Entrega: ${prevEnt})</li>`;
             updatedCount++;
         } else {
-            // Adiciona novo
             const newDocRef = doc(collection(db, "tasks"));
             batch.set(newDocRef, {
                 osNumber: os, clientName, description,
@@ -216,7 +209,7 @@ deleteButton.addEventListener('click', async () => {
 });
 
 
-// --- Funções Auxiliares (sem alterações) ---
+// --- Funções Auxiliares ---
 const canonicalStatuses = [ { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' }, { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' }, { id: 'corte', label: 'Corte' }, { id: 'faturamento', label: 'Faturamento' }, { id: 'instalacao', label: 'Instalação' }, { id: 'entrega', label: 'Entrega' }];
 
 function healStatuses(statusesArray = []) {
