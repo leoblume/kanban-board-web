@@ -1,3 +1,5 @@
+// --- START OF FILE setor.js ---
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
@@ -71,7 +73,7 @@ function renderTasks(tasksToRender) {
             <span class="sector-task-execution-date">Execução: ${executionDate}</span>
             <span class="sector-task-delivery">Entrega: ${task.deliveryDateDisplay}</span>
             <div class="sector-task-action">
-                <button class="status-button ${sectorStatus.state}" title="Clique para marcar como 'Concluído'"></button>
+                <button class="status-button ${sectorStatus.state}" title="Clique para alterar o status"></button>
             </div>
         `;
         taskListContainer.appendChild(taskElement);
@@ -84,7 +86,6 @@ function loadSectorTasks() {
     onSnapshot(q, (snapshot) => {
         const allTasks = snapshot.docs.map(doc => {
             const data = doc.data();
-            // Adiciona o campo de data de entrega formatado para exibição
             return { 
                 id: doc.id, 
                 ...data,
@@ -92,13 +93,18 @@ function loadSectorTasks() {
             };
         });
 
+        // *** CORREÇÃO APLICADA AQUI ***
         // Filtra as tarefas de acordo com as regras especificadas
         const filteredTasks = allTasks.filter(task => {
+            // Regra 1: Ignora qualquer tarefa que tenha algum status bloqueado
             const isBlocked = task.statuses.some(s => s.state === 'state-blocked');
             if (isBlocked) return false;
 
             const sectorStatus = task.statuses.find(s => s.id === sectorId);
-            return sectorStatus && sectorStatus.state === 'state-in-progress';
+            
+            // Regra 2: Mostra a tarefa se o status do setor for 'pendente' OU 'em andamento'.
+            // (Ignora tarefas já concluídas ou bloqueadas nesse setor)
+            return sectorStatus && (sectorStatus.state === 'state-in-progress' || sectorStatus.state === 'state-pending');
         });
 
         renderTasks(filteredTasks);
@@ -109,7 +115,8 @@ function loadSectorTasks() {
     });
 }
 
-// Event listener para marcar a tarefa como concluída (sem alterações)
+// *** CORREÇÃO APLICADA AQUI ***
+// Event listener para ciclar o status da tarefa
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
@@ -123,9 +130,15 @@ taskListContainer.addEventListener('click', async (event) => {
         if (!docSnap.exists()) return;
 
         const taskData = docSnap.data();
+        
+        // Lógica de ciclo de status, igual ao quadro principal
+        const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked'];
+
         const newStatuses = taskData.statuses.map(status => {
             if (status.id === sectorId) {
-                return { ...status, state: 'state-done' };
+                const currentIndex = states.indexOf(status.state);
+                const nextIndex = (currentIndex + 1) % states.length;
+                return { ...status, state: states[nextIndex] };
             }
             return status;
         });
@@ -136,3 +149,4 @@ taskListContainer.addEventListener('click', async (event) => {
         alert("Ocorreu um erro ao tentar atualizar a tarefa.");
     }
 });
+// --- END OF FILE setor.js ---

@@ -1,3 +1,4 @@
+// --- START OF FILE extrator_de_dados_pdf.html ---
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -8,17 +9,38 @@
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     h1 { font-size: 24px; margin-bottom: 16px; }
+    .controls { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
     input, button { margin: 10px 0; padding: 10px; font-size: 16px; }
     button { background: #198754; color: white; border: none; border-radius: 5px; cursor: pointer; }
     button:hover { background: #157347; }
     #resultArea { background: #fff; padding: 16px; border-radius: 8px; margin-top: 20px; box-shadow: 0 0 10px #ccc; }
     li { margin: 6px 0; }
+    .back-link {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 15px;
+        background-color: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .back-link:hover {
+        background-color: #5a6268;
+    }
   </style>
 </head>
 <body>
   <h1>Importar Tarefas via PDF</h1>
-  <input type="file" id="pdfFile" accept="application/pdf">
-  <button onclick="extractData()">Importar Dados</button>
+  <a href="index.html" class="back-link">← Voltar ao Quadro Principal</a>
+  <hr style="margin: 20px 0;">
+  
+  <div class="controls">
+      <input type="file" id="pdfFile" accept="application/pdf">
+      <button onclick="extractData()">Importar Dados</button>
+  </div>
+  
   <div id="resultArea"></div>
 </body>
 </html>
+// --- END OF FILE extrator_de_dados_pdf.html ---
