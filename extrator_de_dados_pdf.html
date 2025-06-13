@@ -4,7 +4,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Importar Tarefas via PDF</title>
+  <title>Importar e Sincronizar Tarefas via PDF</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script type="module" src="./importador_pdf.js"></script>
   <style>
@@ -39,13 +39,13 @@
         <button id="importButton" onclick="window.extractData()">Analisar e Sincronizar</button>
     </div>
     
-    <!-- MODIFICADO: Estrutura de resultados dividida -->
+    <!-- Estrutura de resultados dividida -->
     <div id="resultsContainer">
         <div id="resultArea" class="result-section" style="display:none;"></div>
         <div id="deletionArea" class="result-section" style="display:none;">
             <h2>Itens não encontrados no PDF (Candidatos à Remoção)</h2>
             <p>Os seguintes itens existem no quadro Kanban, mas não no relatório PDF importado. Itens manuais (OS iniciada com '1') são ignorados. Selecione os que deseja remover:</p>
-            <div id="deleteList"></div>
+            <ul id="deleteList" style="list-style-type: none; padding-left: 0;"></ul>
             <button id="deleteButton" style="display:none;">Remover Selecionados</button>
         </div>
     </div>

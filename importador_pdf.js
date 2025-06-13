@@ -18,7 +18,7 @@ const tasksCollection = collection(db, "tasks");
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// MODIFICADO: Seletores de elementos da nova UI
+// Seletores de elementos da nova UI
 const fileInput = document.getElementById('pdfFile');
 const importButton = document.getElementById('importButton');
 const resultArea = document.getElementById('resultArea');
@@ -26,7 +26,7 @@ const deletionArea = document.getElementById('deletionArea');
 const deleteList = document.getElementById('deleteList');
 const deleteButton = document.getElementById('deleteButton');
 
-// MODIFICADO: Lógica de extração e sincronização totalmente refeita
+// Lógica de extração e sincronização totalmente refeita
 window.extractData = async function () {
   const file = fileInput.files[0];
   if (!file) {
@@ -43,20 +43,20 @@ window.extractData = async function () {
 
   try {
     // ETAPA 1: Extrair OS do PDF
-    const pdfOsNumbers = await getOsFromPdf(file);
-    resultArea.innerHTML = `PDF lido. ${pdfOsNumbers.size} OS encontradas. Comparando com o banco de dados...`;
+    const pdfOsDataMap = await getOsFromPdf(file);
+    resultArea.innerHTML = `PDF lido. ${pdfOsDataMap.size} OS encontradas. Comparando com o banco de dados...`;
     
     // ETAPA 2: Buscar todos os dados do Firebase
     const dbTasksSnapshot = await getDocs(tasksCollection);
     const dbTasks = dbTasksSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // ETAPA 3: Processar atualizações e novas entradas
-    const { updatedCount, importedCount, importLogHTML } = await processPdfTasks(pdfOsNumbers, dbTasks);
+    const { updatedCount, importedCount, importLogHTML } = await processPdfTasks(pdfOsDataMap, dbTasks);
 
     // ETAPA 4: Identificar tarefas para exclusão
     const tasksToDelete = dbTasks.filter(task => {
       // Regra 1: Não está no PDF
-      const notInPdf = !pdfOsNumbers.has(task.osNumber);
+      const notInPdf = !pdfOsDataMap.has(task.osNumber);
       // Regra 2: Não é uma entrada manual (ignora OS com 5 digitos começando com '1')
       const isManualEntry = task.osNumber && task.osNumber.startsWith('1') && task.osNumber.length === 5;
       return notInPdf && !isManualEntry;
@@ -64,7 +64,13 @@ window.extractData = async function () {
 
     // ETAPA 5: Renderizar os resultados
     resultArea.innerHTML = `<h3>Resultados da Sincronização</h3>
-                            <p><strong>Total de itens processados: ${updatedCount + importedCount}</strong></p>
+                            <p><strong>Total de itens processados no PDF: ${pdfOsDataMap.size}</strong></p>
+                            <ul>
+                               <li class="imported">✅ Criados: ${importedCount}</li>
+                               <li class="updated">🔄 Atualizados: ${updatedCount}</li>
+                            </ul>
+                            <br>
+                            <strong>Log detalhado:</strong>
                             <ul>${importLogHTML}</ul>`;
 
     if (tasksToDelete.length > 0) {
@@ -76,7 +82,7 @@ window.extractData = async function () {
 
   } catch (error) {
     console.error("Erro no processo de sincronização:", error);
-    resultArea.innerHTML = `<p style="color: red;"><strong>Erro:</strong> Falha ao processar. Verifique o console.</p>`;
+    resultArea.innerHTML = `<p style="color: red;"><strong>Erro:</strong> ${error.message}. Verifique o console.</p>`;
   } finally {
     importButton.disabled = false;
     importButton.textContent = "Analisar e Sincronizar";
@@ -95,6 +101,7 @@ async function getOsFromPdf(file) {
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const content = await page.getTextContent();
+                    // Ordena o texto para reconstruir a ordem das linhas corretamente
                     const sortedItems = content.items.sort((a, b) => (Math.abs(a.transform[5] - b.transform[5]) > 5) ? b.transform[5] - a.transform[5] : a.transform[4] - b.transform[4]);
                     fullText += sortedItems.map(item => item.str).join(' ');
                 }
@@ -116,26 +123,27 @@ async function getOsFromPdf(file) {
     });
 }
 
-async function processPdfTasks(pdfOsDataMap) {
+async function processPdfTasks(pdfOsDataMap, dbTasks) {
     let updatedCount = 0;
     let importedCount = 0;
     let importLogHTML = "";
+    
+    const dbOsMap = new Map(dbTasks.map(task => [task.osNumber, task]));
+    const batch = writeBatch(db);
 
-    for (const [os, taskData] of pdfOsDataMap.entries()) {
-        const { clientAndDesc, prevEnt } = taskData;
+    for (const [os, pdfTaskData] of pdfOsDataMap.entries()) {
+        const { clientAndDesc, prevEnt } = pdfTaskData;
         let { clientName, description } = splitClientAndDescription(clientAndDesc);
+        
+        const existingTask = dbOsMap.get(os);
 
-        const q = query(tasksCollection, where("osNumber", "==", os));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
+        if (existingTask) {
             // Atualiza existente
-            const existingDoc = snapshot.docs[0];
-            const docRef = doc(db, "tasks", existingDoc.id);
-            const currentStatuses = existingDoc.data().statuses || [];
-            const updatedStatuses = currentStatuses.map(s => s.id === "entrega" ? { ...s, date: prevEnt } : s);
+            const docRef = doc(db, "tasks", existingTask.id);
+            const currentStatuses = existingTask.statuses || [];
+            const updatedStatuses = healStatuses(currentStatuses).map(s => s.id === "entrega" ? { ...s, date: prevEnt } : s);
             
-            await updateDoc(docRef, { 
+            batch.update(docRef, { 
                 clientName: clientName, 
                 description: description, 
                 statuses: updatedStatuses,
@@ -145,9 +153,10 @@ async function processPdfTasks(pdfOsDataMap) {
             updatedCount++;
         } else {
             // Adiciona novo
-            await addDoc(tasksCollection, {
+            const newDocRef = doc(collection(db, "tasks")); // Cria referência para novo doc
+            batch.set(newDocRef, {
                 osNumber: os, clientName, description,
-                order: Date.now() + importedCount,
+                order: Date.now() + importedCount, // Garante ordem única
                 deliveryDate: convertDateToSortable(prevEnt),
                 statuses: healStatuses([{ id: 'entrega', date: prevEnt }])
             });
@@ -155,6 +164,11 @@ async function processPdfTasks(pdfOsDataMap) {
             importedCount++;
         }
     }
+    
+    if(updatedCount > 0 || importedCount > 0){
+        await batch.commit();
+    }
+    
     return { updatedCount, importedCount, importLogHTML };
 }
 
@@ -163,7 +177,7 @@ function renderDeletionCandidates(tasks) {
     deleteList.innerHTML = tasks.map(task => `
         <li class="todelete">
             <label>
-                <input type="checkbox" class="delete-checkbox" data-doc-id="${task.id}">
+                <input type="checkbox" class="delete-checkbox" data-doc-id="${task.id}" checked>
                 <strong>OS: ${task.osNumber}</strong> - ${task.clientName}
             </label>
         </li>
@@ -197,7 +211,7 @@ deleteButton.addEventListener('click', async () => {
         alert(`${checkboxes.length} item(ns) removido(s) com sucesso!`);
         // Limpa a UI após a remoção
         deletionArea.innerHTML = '<h2>Itens não encontrados no PDF</h2><p>✅ Itens selecionados foram removidos com sucesso.</p>';
-        deletionArea.style.display = 'block';
+        deleteButton.style.display = 'none';
     } catch (error) {
         console.error("Erro ao remover tarefas:", error);
         alert("Ocorreu um erro ao remover as tarefas.");
@@ -210,9 +224,10 @@ deleteButton.addEventListener('click', async () => {
 
 // --- Funções Auxiliares ---
 const canonicalStatuses = [ { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' }, { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' }, { id: 'corte', label: 'Corte' }, { id: 'faturamento', label: 'Faturamento' }, { id: 'instalacao', label: 'Instalação' }, { id: 'entrega', label: 'Entrega' }];
+
 function healStatuses(statusesArray = []) {
     return canonicalStatuses.map(canonical => {
-        const existing = statusesArray.find(s => s.id === canonical.id || (s.id === 'entrega' && canonical.id === 'entrega'));
+        const existing = statusesArray.find(s => s.id === canonical.id);
         return {
             id: canonical.id,
             label: canonical.label,
@@ -221,5 +236,25 @@ function healStatuses(statusesArray = []) {
         };
     });
 }
-function convertDateToSortable(dateStr) { if (!dateStr || !dateStr.includes('/')) return '9999-12-31'; const parts = dateStr.split('/'); if (parts.length < 3) return '9999-12-31'; return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`; }
-function splitClientAndDescription(combinedString) { const descKeywords = ['REPARO', 'LETRA CAIXA', 'ADESIVO', 'PERSONALIZAÇÃO', 'RETIRADA', 'LONA COM IMPRESSÃO', 'TROCA DE LONA', 'ESTRUTURAS E LONA', 'BANNER EM LONA', 'PAINEL BACKLIGHT', 'PLOTER RECORTE', 'CRACHÁ', 'MANUTENÇÃO DE', 'SINALÉTICA DOCAS', 'WIND BANNER', 'TECIDO WIND', 'CÓPIA DE LETRAS', 'IMPRESSÃO E APLICAÇÃO', 'FACHADA EM ACM', 'PLAQUINHAS', 'COMUNICAÇÃO', 'LONAS COM IMPRESSÃO', '(CORTESIA) ADESIVO']; let clientName = combinedString; let description = ''; for (const keyword of descKeywords) { const index = combinedString.indexOf(keyword); if (index > 0) { clientName = combinedString.substring(0, index).trim().replace(/[\s-]*$/, ''); description = combinedString.substring(index).trim(); return { clientName, description }; } } return { clientName: combinedString.trim(), description: "Não especificada" }; }
+
+function convertDateToSortable(dateStr) { 
+    if (!dateStr || !dateStr.includes('/')) return '9999-12-31';
+    const parts = dateStr.split('/'); 
+    if (parts.length < 3) return '9999-12-31'; 
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+}
+
+function splitClientAndDescription(combinedString) { 
+    const descKeywords = ['REPARO', 'LETRA CAIXA', 'ADESIVO', 'PERSONALIZAÇÃO', 'RETIRADA', 'LONA COM IMPRESSÃO', 'TROCA DE LONA', 'ESTRUTURAS E LONA', 'BANNER EM LONA', 'PAINEL BACKLIGHT', 'PLOTER RECORTE', 'CRACHÁ', 'MANUTENÇÃO DE', 'SINALÉTICA DOCAS', 'WIND BANNER', 'TECIDO WIND', 'CÓPIA DE LETRAS', 'IMPRESSÃO E APLICAÇÃO', 'FACHADA EM ACM', 'PLAQUINHAS', 'COMUNICAÇÃO', 'LONAS COM IMPRESSÃO', '(CORTESIA) ADESIVO']; 
+    let clientName = combinedString; 
+    let description = ''; 
+    for (const keyword of descKeywords) { 
+        const index = combinedString.indexOf(keyword); 
+        if (index > 0) { 
+            clientName = combinedString.substring(0, index).trim().replace(/[\s-]*$/, ''); 
+            description = combinedString.substring(index).trim(); 
+            return { clientName, description }; 
+        } 
+    } 
+    return { clientName: combinedString.trim(), description: "Não especificada" }; 
+}
