@@ -24,11 +24,24 @@ const urlParams = new URLSearchParams(window.location.search);
 const sectorId = urlParams.get('setor');
 const sectorName = urlParams.get('nome') || sectorId;
 
+// A ordem dos setores é crucial para a lógica de dependência.
+// Esta lista deve ser a mesma do script.js
+const canonicalStatuses = [
+    { id: 'compras', label: 'Compras' },
+    { id: 'arte', label: 'Arte Final' },
+    { id: 'impressao', label: 'Impressão' },
+    { id: 'acabamento', label: 'Acabamento' },
+    { id: 'corte', label: 'Corte' },
+    { id: 'faturamento', label: 'Faturamento' },
+    { id: 'instalacao', label: 'Instalação' },
+    { id: 'entrega', label: 'Entrega' }
+];
+
 // Função auxiliar para formatar a data para exibição (yyyy-mm-dd -> dd/mm)
 function formatDisplayDate(dateStr) {
     if (!dateStr || dateStr.startsWith('9999')) return 'N/D';
     const parts = dateStr.split('-');
-    if (parts.length < 3) return dateStr; 
+    if (parts.length < 3) return dateStr;
     return `${parts[2]}/${parts[1]}`;
 }
 
@@ -51,7 +64,6 @@ function renderTasks(tasksToRender) {
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
         if (!sectorStatus) return;
 
-        // LÓGICA DA DATA DE EXECUÇÃO: Pega a data do status, ou a data de hoje como fallback.
         let executionDate;
         if (sectorStatus.date) {
             executionDate = sectorStatus.date;
@@ -61,12 +73,11 @@ function renderTasks(tasksToRender) {
             const month = String(today.getMonth() + 1).padStart(2, '0');
             executionDate = `${day}/${month}`;
         }
-        
+
         const taskElement = document.createElement('div');
         taskElement.className = 'sector-task-card';
         taskElement.dataset.docId = task.id;
 
-        // NOVO LAYOUT COMPACTO
         taskElement.innerHTML = `
             <span class="sector-task-os">${task.osNumber}</span>
             <span class="sector-task-client">${task.clientName}</span>
@@ -84,27 +95,39 @@ function loadSectorTasks() {
     const q = query(tasksCollection, orderBy("deliveryDate"));
 
     onSnapshot(q, (snapshot) => {
-        const allTasks = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return { 
-                id: doc.id, 
-                ...data,
-                deliveryDateDisplay: formatDisplayDate(data.deliveryDate)
-            };
-        });
+        const allTasks = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            deliveryDateDisplay: formatDisplayDate(doc.data().deliveryDate)
+        }));
 
-        // *** CORREÇÃO APLICADA AQUI ***
-        // Filtra as tarefas de acordo com as regras especificadas
+        // *** CORREÇÃO DEFINITIVA APLICADA AQUI ***
         const filteredTasks = allTasks.filter(task => {
-            // Regra 1: Ignora qualquer tarefa que tenha algum status bloqueado
-            const isBlocked = task.statuses.some(s => s.state === 'state-blocked');
-            if (isBlocked) return false;
+            // Regra 1: Ignora a tarefa se qualquer etapa estiver bloqueada.
+            if (task.statuses.some(s => s.state === 'state-blocked')) {
+                return false;
+            }
 
+            // Regra 2: A tarefa deve estar 'pendente' ou 'em andamento' neste setor.
             const sectorStatus = task.statuses.find(s => s.id === sectorId);
-            
-            // Regra 2: Mostra a tarefa se o status do setor for 'pendente' OU 'em andamento'.
-            // (Ignora tarefas já concluídas ou bloqueadas nesse setor)
-            return sectorStatus && (sectorStatus.state === 'state-in-progress' || sectorStatus.state === 'state-pending');
+            if (!sectorStatus || (sectorStatus.state !== 'state-pending' && sectorStatus.state !== 'state-in-progress')) {
+                return false;
+            }
+
+            // Regra 3: A etapa ANTERIOR deve estar 'concluída'.
+            const currentIndex = canonicalStatuses.findIndex(s => s.id === sectorId);
+
+            // Se for o primeiro setor (Compras), não há etapa anterior, então ele está sempre liberado.
+            if (currentIndex === 0) {
+                return true;
+            }
+
+            // Para os outros setores, verifica a etapa anterior.
+            const previousSectorId = canonicalStatuses[currentIndex - 1].id;
+            const previousSectorStatus = task.statuses.find(s => s.id === previousSectorId);
+
+            // A etapa anterior deve existir e estar 'concluída' para liberar a atual.
+            return previousSectorStatus && previousSectorStatus.state === 'state-done';
         });
 
         renderTasks(filteredTasks);
@@ -115,8 +138,7 @@ function loadSectorTasks() {
     });
 }
 
-// *** CORREÇÃO APLICADA AQUI ***
-// Event listener para ciclar o status da tarefa
+// Event listener para ciclar o status da tarefa (sem alterações, mas mantido para integridade)
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
@@ -130,8 +152,6 @@ taskListContainer.addEventListener('click', async (event) => {
         if (!docSnap.exists()) return;
 
         const taskData = docSnap.data();
-        
-        // Lógica de ciclo de status, igual ao quadro principal
         const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked'];
 
         const newStatuses = taskData.statuses.map(status => {
