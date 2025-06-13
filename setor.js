@@ -34,12 +34,10 @@ const canonicalStatuses = [
     { id: 'instalacao', label: 'Instalação' },
     { id: 'entrega', label: 'Entrega' }
 ];
-// Encontra o índice do setor atual no fluxo de trabalho. Essencial para a lógica de bloqueio.
-const sectorIndex = canonicalStatuses.findIndex(s => s.id === sectorId);
 
 function healStatuses(statusesArray = []) {
     return canonicalStatuses.map(canonical => {
-        const existing = statusesArray.find(s => s.id === canonical.id);
+        const existing = statusesArray ? statusesArray.find(s => s.id === canonical.id) : null;
         return {
             id: canonical.id,
             label: canonical.label,
@@ -48,6 +46,7 @@ function healStatuses(statusesArray = []) {
         };
     });
 }
+
 function formatDisplayDate(dateStr) {
     if (!dateStr || dateStr.startsWith('9999')) return 'N/D';
     const parts = dateStr.split('-');
@@ -57,6 +56,7 @@ function formatDisplayDate(dateStr) {
 
 if (!sectorId) {
     sectorTitleElement.textContent = "Erro: Setor não especificado.";
+    taskListContainer.innerHTML = '<p class="error-message">ID do setor não encontrado na URL.</p>';
 } else {
     sectorTitleElement.textContent = `Painel do Setor: ${sectorName}`;
     pageTitleElement.textContent = `Painel: ${sectorName}`;
@@ -71,9 +71,7 @@ function renderTasks(tasksToRender) {
 
     taskListContainer.innerHTML = '';
     tasksToRender.forEach(task => {
-        // Como a lista já vem filtrada, temos certeza que o status existe.
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
-        
         const executionDate = sectorStatus.date || 'Sem data';
         
         const taskElement = document.createElement('div');
@@ -94,50 +92,62 @@ function renderTasks(tasksToRender) {
 }
 
 function loadSectorTasks() {
+    // Encontra o índice do setor atual no fluxo de trabalho. Essencial para a lógica de bloqueio.
+    const currentSectorIndex = canonicalStatuses.findIndex(s => s.id === sectorId);
+    if (currentSectorIndex === -1) {
+        console.error("ID de setor inválido fornecido na URL:", sectorId);
+        taskListContainer.innerHTML = '<p class="error-message">O setor especificado na URL é inválido.</p>';
+        return;
+    }
+
     const q = query(tasksCollection, orderBy("deliveryDate"));
 
     onSnapshot(q, (snapshot) => {
         const allTasks = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
-                id: doc.id, ...data, 
-                statuses: healStatuses(data.statuses), // Sempre cure os dados na leitura
+                id: doc.id,
+                ...data, 
+                statuses: healStatuses(data.statuses),
                 deliveryDateDisplay: formatDisplayDate(data.deliveryDate)
             };
         });
         
-        // --- LÓGICA DE FILTRO CORRIGIDA E SIMPLIFICADA ---
+        // --- LÓGICA DE FILTRO ROBUSTA E CORRIGIDA ---
         const filteredTasks = allTasks.filter(task => {
-            // A função 'healStatuses' garante que task.statuses está na ordem canônica.
-            // Isso torna o acesso por índice seguro e performático.
-            const sectorStatus = task.statuses[sectorIndex];
+            // 1. Encontra o status específico para este setor de forma segura.
+            const sectorStatus = task.statuses.find(s => s.id === sectorId);
+            
+            // Verificação de segurança: se o status não for encontrado, ignora a tarefa.
+            if (!sectorStatus) return false;
 
-            // REGRA 1 (PRINCIPAL): A tarefa deve estar ativa (Pendente ou Em Andamento) NESTE setor.
-            // Se não estiver, é ignorada imediatamente.
+            // 2. REGRA PRINCIPAL: A tarefa deve estar ativa (Pendente ou Em Andamento) NESTE setor.
             const isTaskActiveInSector = sectorStatus.state === 'state-pending' || sectorStatus.state === 'state-in-progress';
             if (!isTaskActiveInSector) {
                 return false;
             }
 
-            // REGRA 2 (BLOQUEIO): Se a tarefa está ativa, agora verificamos se alguma etapa ANTERIOR está bloqueada.
-            for (let i = 0; i < sectorIndex; i++) {
+            // 3. REGRA DE BLOQUEIO: Se a tarefa estiver ativa, verificamos se alguma etapa ANTERIOR está bloqueada.
+            // A função `healStatuses` garante que `task.statuses` está na ordem correta.
+            for (let i = 0; i < currentSectorIndex; i++) {
                 if (task.statuses[i].state === 'state-blocked') {
                     return false; // Encontrou um bloqueio em uma etapa anterior, então não mostrar.
                 }
             }
             
-            // Se a tarefa está ativa neste setor E nenhuma etapa anterior está bloqueada, ela deve ser exibida.
+            // Se passou por todas as verificações, a tarefa é válida para este painel.
             return true;
         });
 
         renderTasks(filteredTasks);
+
     }, (error) => {
         console.error("Erro ao carregar tarefas do setor: ", error);
-        taskListContainer.innerHTML = '<p class="error-message">Não foi possível carregar as tarefas.</p>';
+        taskListContainer.innerHTML = '<p class="error-message">Não foi possível carregar as tarefas. Verifique o console para mais detalhes.</p>';
     });
 }
 
-// Event listener para ciclar o status da tarefa (sem alterações, funciona perfeitamente com a lógica corrigida)
+// Event listener para ciclar o status da tarefa (sem alterações)
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
