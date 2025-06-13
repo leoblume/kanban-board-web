@@ -1,7 +1,8 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+--- START OF FILE importador_pdf.js ---
 
-// Suas configurações do Firebase (mantidas como no original)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
   authDomain: "kanban-board-92ce7.firebaseapp.com",
@@ -11,162 +12,214 @@ const firebaseConfig = {
   appId: "1:494809291125:web:17f9eefa4287d39174db3c"
 };
 
-// Inicialização do Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const tasksCollection = collection(db, "tasks");
 
-// Configuração do worker do pdf.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-/**
- * Função principal para extrair dados do PDF, processá-los e salvar no Firebase.
- */
-window.extractData = async function () {
-  const fileInput = document.getElementById('pdfFile');
-  const file = fileInput.files[0];
-  const resultArea = document.getElementById('resultArea');
-  resultArea.innerHTML = "Processando..."; // Feedback para o usuário
+// MODIFICADO: Seletores de elementos da nova UI
+const fileInput = document.getElementById('pdfFile');
+const importButton = document.getElementById('importButton');
+const resultArea = document.getElementById('resultArea');
+const deletionArea = document.getElementById('deletionArea');
+const deleteList = document.getElementById('deleteList');
+const deleteButton = document.getElementById('deleteButton');
 
+// MODIFICADO: Lógica de extração e sincronização totalmente refeita
+window.extractData = async function () {
+  const file = fileInput.files[0];
   if (!file) {
     alert("Por favor, selecione um arquivo PDF.");
-    resultArea.innerHTML = "";
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = async function () {
-    try {
-      const typedarray = new Uint8Array(reader.result);
-      const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
-      let fullText = '';
+  // --- Feedback visual para o usuário ---
+  importButton.disabled = true;
+  importButton.textContent = "Processando...";
+  resultArea.style.display = 'block';
+  resultArea.innerHTML = "Lendo PDF...";
+  deletionArea.style.display = 'none';
 
-      // ETAPA 1: Extrair e ORDENAR o texto de cada página
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        
-        const sortedItems = content.items.sort((a, b) => {
-          const yA = a.transform[5]; const yB = b.transform[5];
-          const xA = a.transform[4]; const xB = b.transform[4];
-          if (Math.abs(yA - yB) > 5) { return yB - yA; }
-          return xA - xB;
-        });
-        fullText += sortedItems.map(item => item.str).join(' ');
-      }
-      
-      fullText = fullText.replace(/Total OSs.*?:\s*\d+/g, '').replace(/\s{2,}/g, ' ');
-      const regex = /(\d{5})\s+(.*?)\s+PRO\s+\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+(\d{2}\/\d{2}\/\d{4})/g;
-      
-      let match;
-      let count = 0;
-      let outputHTML = "<h3>Resultado da Importação:</h3><ul>";
-      const tasksToProcess = [];
+  try {
+    // ETAPA 1: Extrair OS do PDF
+    const pdfOsNumbers = await getOsFromPdf(file);
+    resultArea.innerHTML = `PDF lido. ${pdfOsNumbers.size} OS encontradas. Comparando com o banco de dados...`;
+    
+    // ETAPA 2: Buscar todos os dados do Firebase
+    const dbTasksSnapshot = await getDocs(tasksCollection);
+    const dbTasks = dbTasksSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      while ((match = regex.exec(fullText)) !== null) {
-        tasksToProcess.push({ os: match[1], clientAndDesc: match[2].trim(), prevEnt: match[3] });
-      }
+    // ETAPA 3: Processar atualizações e novas entradas
+    const { updatedCount, importedCount, importLogHTML } = await processPdfTasks(pdfOsNumbers, dbTasks);
 
-      if (tasksToProcess.length === 0) {
-        outputHTML += "<li>⚠️ Nenhum dado de OS encontrado. Verifique o formato do PDF ou a extração de texto.</li>";
-      }
+    // ETAPA 4: Identificar tarefas para exclusão
+    const tasksToDelete = dbTasks.filter(task => {
+      // Regra 1: Não está no PDF
+      const notInPdf = !pdfOsNumbers.has(task.osNumber);
+      // Regra 2: Não é uma entrada manual (ignora OS com 5 digitos começando com '1')
+      const isManualEntry = task.osNumber && task.osNumber.startsWith('1') && task.osNumber.length === 5;
+      return notInPdf && !isManualEntry;
+    });
 
-      for (const task of tasksToProcess) {
-        const { os, clientAndDesc, prevEnt } = task;
+    // ETAPA 5: Renderizar os resultados
+    resultArea.innerHTML = `<h3>Resultados da Sincronização</h3>
+                            <p><strong>Total de itens processados: ${updatedCount + importedCount}</strong></p>
+                            <ul>${importLogHTML}</ul>`;
+
+    if (tasksToDelete.length > 0) {
+      renderDeletionCandidates(tasksToDelete);
+    } else {
+      deletionArea.style.display = 'block';
+      deletionArea.innerHTML = '<h2>Itens não encontrados no PDF</h2><p>✅ Sincronização perfeita! Nenhuma tarefa precisou ser removida.</p>';
+    }
+
+  } catch (error) {
+    console.error("Erro no processo de sincronização:", error);
+    resultArea.innerHTML = `<p style="color: red;"><strong>Erro:</strong> Falha ao processar. Verifique o console.</p>`;
+  } finally {
+    importButton.disabled = false;
+    importButton.textContent = "Analisar e Sincronizar";
+    fileInput.value = '';
+  }
+};
+
+async function getOsFromPdf(file) {
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+        reader.onload = async function () {
+            try {
+                const typedarray = new Uint8Array(reader.result);
+                const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+                let fullText = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    const sortedItems = content.items.sort((a, b) => (Math.abs(a.transform[5] - b.transform[5]) > 5) ? b.transform[5] - a.transform[5] : a.transform[4] - b.transform[4]);
+                    fullText += sortedItems.map(item => item.str).join(' ');
+                }
+                
+                fullText = fullText.replace(/Total OSs.*?:\s*\d+/g, '').replace(/\s{2,}/g, ' ');
+                const regex = /(\d{5})\s+(.*?)\s+PRO\s+.*?(\d{2}\/\d{2}\/\d{4})/g;
+                
+                const osDataMap = new Map();
+                let match;
+                while ((match = regex.exec(fullText)) !== null) {
+                    osDataMap.set(match[1], { os: match[1], clientAndDesc: match[2].trim(), prevEnt: match[3] });
+                }
+                resolve(osDataMap);
+            } catch (err) {
+                reject(err);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+async function processPdfTasks(pdfOsDataMap) {
+    let updatedCount = 0;
+    let importedCount = 0;
+    let importLogHTML = "";
+
+    for (const [os, taskData] of pdfOsDataMap.entries()) {
+        const { clientAndDesc, prevEnt } = taskData;
         let { clientName, description } = splitClientAndDescription(clientAndDesc);
-        
+
         const q = query(tasksCollection, where("osNumber", "==", os));
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-          const existingDoc = snapshot.docs[0];
-          const docRef = doc(db, "tasks", existingDoc.id);
-          const updatedStatuses = existingDoc.data().statuses.map(s => s.id === "entrega" ? { ...s, date: prevEnt } : s);
-          
-          await updateDoc(docRef, { 
-            clientName: clientName, 
-            description: description, 
-            statuses: updatedStatuses,
-            deliveryDate: convertDateToSortable(prevEnt) // Atualiza também o campo de ordenação
-          });
-          outputHTML += `<li>🔄 Atualizado: OS ${os} - ${clientName} (Entrega: ${prevEnt})</li>`;
+            // Atualiza existente
+            const existingDoc = snapshot.docs[0];
+            const docRef = doc(db, "tasks", existingDoc.id);
+            const currentStatuses = existingDoc.data().statuses || [];
+            const updatedStatuses = currentStatuses.map(s => s.id === "entrega" ? { ...s, date: prevEnt } : s);
+            
+            await updateDoc(docRef, { 
+                clientName: clientName, 
+                description: description, 
+                statuses: updatedStatuses,
+                deliveryDate: convertDateToSortable(prevEnt)
+            });
+            importLogHTML += `<li class="updated">🔄 Atualizado: OS ${os} - ${clientName} (Entrega: ${prevEnt})</li>`;
+            updatedCount++;
         } else {
-          // MODIFICADO: Adicionado o status 'corte' e o campo 'deliveryDate'
-          await addDoc(tasksCollection, {
-            osNumber: os,
-            clientName: clientName,
-            description: description,
-            order: Date.now() + count,
-            deliveryDate: convertDateToSortable(prevEnt), // <-- CAMPO ADICIONADO PARA ORDENAÇÃO
-            statuses: [
-              { id: 'compras', label: 'Compras', state: 'state-pending', date: '' },
-              { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
-              { id: 'impressao', label: 'Impressão', state: 'state-pending', date: '' },
-              { id: 'acabamento', label: 'Acabamento', state: 'state-pending', date: '' },
-              { id: 'corte', label: 'Corte', state: 'state-pending', date: '' }, // <-- CAMPO ADICIONADO
-              { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' },
-              { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
-              { id: 'entrega', label: 'Entrega', state: 'state-pending', date: prevEnt }
-            ]
-          });
-          outputHTML += `<li>✅ Importado: OS ${os} - ${clientName} (Entrega: ${prevEnt})</li>`;
+            // Adiciona novo
+            await addDoc(tasksCollection, {
+                osNumber: os, clientName, description,
+                order: Date.now() + importedCount,
+                deliveryDate: convertDateToSortable(prevEnt),
+                statuses: healStatuses([{ id: 'entrega', date: prevEnt }])
+            });
+            importLogHTML += `<li class="imported">✅ Importado: OS ${os} - ${clientName} (Entrega: ${prevEnt})</li>`;
+            importedCount++;
         }
-        count++;
-      }
+    }
+    return { updatedCount, importedCount, importLogHTML };
+}
 
-      outputHTML += `</ul><p><strong>Total de itens processados: ${count}</strong></p>`;
-      resultArea.innerHTML = outputHTML;
-      fileInput.value = '';
+function renderDeletionCandidates(tasks) {
+    deletionArea.style.display = 'block';
+    deleteList.innerHTML = tasks.map(task => `
+        <li class="todelete">
+            <label>
+                <input type="checkbox" class="delete-checkbox" data-doc-id="${task.id}">
+                <strong>OS: ${task.osNumber}</strong> - ${task.clientName}
+            </label>
+        </li>
+    `).join('');
+    
+    deleteButton.style.display = 'block';
+}
 
+deleteButton.addEventListener('click', async () => {
+    const checkboxes = deleteList.querySelectorAll('.delete-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Nenhum item selecionado para remoção.");
+        return;
+    }
+
+    if (!confirm(`Tem certeza que deseja remover ${checkboxes.length} item(ns) permanentemente?`)) {
+        return;
+    }
+
+    deleteButton.disabled = true;
+    deleteButton.textContent = "Removendo...";
+
+    const batch = writeBatch(db);
+    checkboxes.forEach(cb => {
+        const docId = cb.dataset.docId;
+        batch.delete(doc(db, "tasks", docId));
+    });
+
+    try {
+        await batch.commit();
+        alert(`${checkboxes.length} item(ns) removido(s) com sucesso!`);
+        // Limpa a UI após a remoção
+        deletionArea.innerHTML = '<h2>Itens não encontrados no PDF</h2><p>✅ Itens selecionados foram removidos com sucesso.</p>';
+        deletionArea.style.display = 'block';
     } catch (error) {
-      console.error("Erro ao processar o PDF:", error);
-      resultArea.innerHTML = `<p style="color: red;"><strong>Erro:</strong> Falha ao processar o arquivo PDF. Verifique o console para mais detalhes.</p>`;
+        console.error("Erro ao remover tarefas:", error);
+        alert("Ocorreu um erro ao remover as tarefas.");
+    } finally {
+        deleteButton.disabled = false;
+        deleteButton.textContent = "Remover Selecionados";
     }
-  };
+});
 
-  reader.readAsArrayBuffer(file);
-};
 
-/**
- * Função auxiliar para converter a data para um formato ordenável.
- * @param {string} dateStr - A data no formato "dd/mm/yyyy"
- * @returns {string} A data no formato "yyyy-mm-dd"
- */
-function convertDateToSortable(dateStr) {
-    if (!dateStr || !dateStr.includes('/')) return '9999-12-31';
-    const parts = dateStr.split('/');
-    if (parts.length < 2 || isNaN(parseInt(parts[0])) || isNaN(parseInt(parts[1]))) return '9999-12-31';
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = (parts[2] && parts[2].length === 4) ? parts[2] : new Date().getFullYear();
-    return `${year}-${month}-${day}`;
+// --- Funções Auxiliares ---
+const canonicalStatuses = [ { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' }, { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' }, { id: 'corte', label: 'Corte' }, { id: 'faturamento', label: 'Faturamento' }, { id: 'instalacao', label: 'Instalação' }, { id: 'entrega', label: 'Entrega' }];
+function healStatuses(statusesArray = []) {
+    return canonicalStatuses.map(canonical => {
+        const existing = statusesArray.find(s => s.id === canonical.id || (s.id === 'entrega' && canonical.id === 'entrega'));
+        return {
+            id: canonical.id,
+            label: canonical.label,
+            state: existing?.state || 'state-pending',
+            date: existing?.date || ''
+        };
+    });
 }
-
-/**
- * Separa a string "Cliente + Descrição" em duas partes.
- * @param {string} combinedString - A string contendo nome do cliente e descrição juntos.
- * @returns {{clientName: string, description: string}}
- */
-function splitClientAndDescription(combinedString) {
-  // A sua lógica de separação (heurística) permanece a mesma.
-  const descKeywords = [
-    'REPARO', 'LETRA CAIXA', 'ADESIVO', 'PERSONALIZAÇÃO', 'RETIRADA', 'LONA COM IMPRESSÃO', 'TROCA DE LONA',
-    'ESTRUTURAS E LONA', 'BANNER EM LONA', 'PAINEL BACKLIGHT', 'PLOTER RECORTE', 'CRACHÁ', 'MANUTENÇÃO DE',
-    'SINALÉTICA DOCAS', 'WIND BANNER', 'TECIDO WIND', 'CÓPIA DE LETRAS', 'IMPRESSÃO E APLICAÇÃO',
-    'FACHADA EM ACM', 'PLAQUINHAS', 'COMUNICAÇÃO', 'LONAS COM IMPRESSÃO', '(CORTESIA) ADESIVO'
-  ];
-
-  let clientName = combinedString;
-  let description = '';
-
-  for (const keyword of descKeywords) {
-    const index = combinedString.indexOf(keyword);
-    if (index > 0) {
-      clientName = combinedString.substring(0, index).trim();
-      description = combinedString.substring(index).trim();
-      clientName = clientName.replace(/[\s-]*$/, '');
-      return { clientName, description };
-    }
-  }
-  return { clientName: combinedString.trim(), description: "Não especificada" };
-}
+function convertDateToSortable(dateStr) { if (!dateStr || !dateStr.includes('/')) return '9999-12-31'; const parts = dateStr.split('/'); if (parts.length < 3) return '9999-12-31'; return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`; }
+function splitClientAndDescription(combinedString) { const descKeywords = ['REPARO', 'LETRA CAIXA', 'ADESIVO', 'PERSONALIZAÇÃO', 'RETIRADA', 'LONA COM IMPRESSÃO', 'TROCA DE LONA', 'ESTRUTURAS E LONA', 'BANNER EM LONA', 'PAINEL BACKLIGHT', 'PLOTER RECORTE', 'CRACHÁ', 'MANUTENÇÃO DE', 'SINALÉTICA DOCAS', 'WIND BANNER', 'TECIDO WIND', 'CÓPIA DE LETRAS', 'IMPRESSÃO E APLICAÇÃO', 'FACHADA EM ACM', 'PLAQUINHAS', 'COMUNICAÇÃO', 'LONAS COM IMPRESSÃO', '(CORTESIA) ADESIVO']; let clientName = combinedString; let description = ''; for (const keyword of descKeywords) { const index = combinedString.indexOf(keyword); if (index > 0) { clientName = combinedString.substring(0, index).trim().replace(/[\s-]*$/, ''); description = combinedString.substring(index).trim(); return { clientName, description }; } } return { clientName: combinedString.trim(), description: "Não especificada" }; }

@@ -1,4 +1,4 @@
-// --- START OF FILE setor.js ---
+--- START OF FILE setor.js ---
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
@@ -24,7 +24,6 @@ const urlParams = new URLSearchParams(window.location.search);
 const sectorId = urlParams.get('setor');
 const sectorName = urlParams.get('nome') || sectorId;
 
-// Lista canônica de status, essencial para a lógica de correção.
 const canonicalStatuses = [
     { id: 'compras', label: 'Compras' },
     { id: 'arte', label: 'Arte Final' },
@@ -35,13 +34,8 @@ const canonicalStatuses = [
     { id: 'instalacao', label: 'Instalação' },
     { id: 'entrega', label: 'Entrega' }
 ];
+const sectorIndex = canonicalStatuses.findIndex(s => s.id === sectorId);
 
-/**
- * Função de "cura": Garante que uma tarefa tenha todos os 8 status,
- * adicionando os que faltam como 'state-pending'.
- * @param {Array} statusesArray - A lista de status vinda do banco.
- * @returns {Array} A lista completa e corrigida de status.
- */
 function healStatuses(statusesArray = []) {
     return canonicalStatuses.map(canonical => {
         const existing = statusesArray.find(s => s.id === canonical.id);
@@ -53,8 +47,6 @@ function healStatuses(statusesArray = []) {
         };
     });
 }
-
-// Função auxiliar para formatar a data para exibição
 function formatDisplayDate(dateStr) {
     if (!dateStr || dateStr.startsWith('9999')) return 'N/D';
     const parts = dateStr.split('-');
@@ -81,7 +73,7 @@ function renderTasks(tasksToRender) {
         const sectorStatus = task.statuses.find(s => s.id === sectorId);
         if (!sectorStatus) return;
 
-        let executionDate = sectorStatus.date || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        let executionDate = sectorStatus.date || 'Sem data';
         
         const taskElement = document.createElement('div');
         taskElement.className = 'sector-task-card';
@@ -106,19 +98,30 @@ function loadSectorTasks() {
     onSnapshot(q, (snapshot) => {
         const allTasks = snapshot.docs.map(doc => {
             const data = doc.data();
-            const healedStatuses = healStatuses(data.statuses); // Corrige os dados para exibição
             return {
-                id: doc.id, ...data, statuses: healedStatuses,
+                id: doc.id, ...data, 
+                statuses: healStatuses(data.statuses), // Sempre cure os dados na leitura
                 deliveryDateDisplay: formatDisplayDate(data.deliveryDate)
             };
         });
         
+        // MODIFICADO: Lógica de filtro mais inteligente e robusta
         const filteredTasks = allTasks.filter(task => {
-            const isBlocked = task.statuses.some(s => s.state === 'state-blocked');
-            if (isBlocked) return false;
+            // A tarefa só é relevante para este setor se o status não for 'concluído'
+            const currentSectorStatus = task.statuses[sectorIndex];
+            if (currentSectorStatus.state === 'state-done') {
+                return false;
+            }
 
-            const sectorStatus = task.statuses.find(s => s.id === sectorId);
-            return sectorStatus && (sectorStatus.state === 'state-pending' || sectorStatus.state === 'state-in-progress');
+            // Verifica se alguma etapa ANTERIOR está bloqueada. Se sim, não mostra a tarefa.
+            for (let i = 0; i < sectorIndex; i++) {
+                if (task.statuses[i].state === 'state-blocked') {
+                    return false;
+                }
+            }
+            
+            // Se passou por todas as verificações, a tarefa é válida para este painel.
+            return true;
         });
 
         renderTasks(filteredTasks);
@@ -128,7 +131,7 @@ function loadSectorTasks() {
     });
 }
 
-// Event listener para ciclar o status da tarefa
+// Event listener para ciclar o status da tarefa (sem alterações, mas confirmado que funciona com a nova estrutura)
 taskListContainer.addEventListener('click', async (event) => {
     const button = event.target.closest('.status-button');
     if (!button) return;
@@ -142,13 +145,9 @@ taskListContainer.addEventListener('click', async (event) => {
         if (!docSnap.exists()) return;
 
         const taskData = docSnap.data();
-        
-        // "Cura" a lista de status lida do banco para garantir que ela esteja completa.
         const completeStatuses = healStatuses(taskData.statuses);
-        
         const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked'];
         
-        // Mapeia sobre a lista COMPLETA para fazer a alteração.
         const newStatuses = completeStatuses.map(status => {
             if (status.id === sectorId) {
                 const currentIndex = states.indexOf(status.state);
@@ -158,7 +157,6 @@ taskListContainer.addEventListener('click', async (event) => {
             return status;
         });
 
-        // Salva a lista COMPLETA e modificada de volta no banco.
         await updateDoc(docRef, { statuses: newStatuses });
 
     } catch (error) {
@@ -166,4 +164,3 @@ taskListContainer.addEventListener('click', async (event) => {
         alert("Ocorreu um erro ao tentar atualizar a tarefa.");
     }
 });
-// --- END OF FILE setor.js ---
