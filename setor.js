@@ -45,6 +45,7 @@ function createTarefaCard(task, status) {
   const card = document.createElement("div");
   card.className = "sector-task-card";
 
+  // Usa a data do status, se não houver, usa a data de hoje para exibição.
   const dataExec = status.date || hojeFormatado();
 
   card.innerHTML = `
@@ -59,8 +60,25 @@ function createTarefaCard(task, status) {
   return card;
 }
 
+// --- NOVO: Função para converter a data "DD/MM" para um objeto Date ---
+// Isso é essencial para a ordenação correta.
+function parseDate(dateString) {
+  // Se a data não existir, retorna uma data muito no futuro
+  // para que esses itens fiquem no final da lista.
+  if (!dateString) {
+    return new Date('9999-12-31');
+  }
+  const [day, month] = dateString.split('/').map(Number);
+  // Os meses em JavaScript são baseados em 0 (janeiro = 0)
+  return new Date(new Date().getFullYear(), month - 1, day);
+}
+
 onSnapshot(tasksCollection, (snapshot) => {
   container.innerHTML = "";
+  
+  // --- MUDANÇA 1: Criar um array temporário para armazenar as tarefas a serem exibidas ---
+  const tarefasParaExibir = [];
+
   snapshot.docs.forEach(docSnap => {
     const task = { id: docSnap.id, ...docSnap.data() };
     const statuses = healStatuses(task.statuses);
@@ -72,9 +90,22 @@ onSnapshot(tasksCollection, (snapshot) => {
     const isSemStatus = currentStatus.state === "state-pending";
 
     if (isAguardando || isSemStatus) {
-      const card = createTarefaCard(task, currentStatus);
-      container.appendChild(card);
+      // Em vez de renderizar, adiciona a tarefa e seu status ao nosso array
+      tarefasParaExibir.push({ task, status: currentStatus });
     }
+  });
+
+  // --- MUDANÇA 2: Ordenar o array de tarefas ---
+  tarefasParaExibir.sort((a, b) => {
+    const dateA = parseDate(a.status.date);
+    const dateB = parseDate(b.status.date);
+    return dateA - dateB; // Ordena da data mais antiga para a mais nova
+  });
+
+  // --- MUDANÇA 3: Renderizar os cards a partir do array já ordenado ---
+  tarefasParaExibir.forEach(item => {
+    const card = createTarefaCard(item.task, item.status);
+    container.appendChild(card);
   });
 });
 
