@@ -108,9 +108,7 @@ kanbanBody.addEventListener('click', async (event) => {
     // ADICIONADO: Bloco try...catch para todas as ações de clique
     try {
         if (button.classList.contains('delete-button')) {
-            if (confirm('Tem certeza de que deseja excluir esta tarefa permanentemente?')) {
-                await deleteDoc(docRef);
-            }
+            await deleteDoc(docRef);
         } else if (button.classList.contains('status-button')) {
             const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked'];
             const statusId = button.dataset.statusId;
