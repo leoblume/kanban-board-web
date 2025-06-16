@@ -16,6 +16,31 @@ const tasksCollection = collection(db, "tasks");
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// --- NOVO: Função para calcular a data - X dias e formatar para DD/MM ---
+/**
+ * Calcula uma data anterior com base em uma data string e a retorna formatada.
+ * @param {string} dateStr - A data base no formato "DD/MM/YYYY".
+ * @param {number} daysToSubtract - O número de dias a subtrair.
+ * @returns {string} A nova data no formato "DD/MM".
+ */
+function calculateAndFormatPreviousDate(dateStr, daysToSubtract) {
+  // Converte a string "DD/MM/YYYY" para um objeto Date
+  const parts = dateStr.split('/');
+  const [day, month, year] = parts.map(Number);
+  // new Date(ano, mês - 1, dia) - Mês em JS é 0-indexado
+  const dateObj = new Date(year, month - 1, day);
+
+  // setDate lida automaticamente com a mudança de mês/ano
+  dateObj.setDate(dateObj.getDate() - daysToSubtract);
+
+  // Formata de volta para "DD/MM"
+  const newDay = String(dateObj.getDate()).padStart(2, '0');
+  const newMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
+
+  return `${newDay}/${newMonth}`;
+}
+
+
 window.extractData = async function () {
   const fileInput = document.getElementById('pdfFile');
   const file = fileInput.files[0];
@@ -73,46 +98,58 @@ window.extractData = async function () {
       let outputHTML = "<h3>Resultado da Importação:</h3><ul>";
 
       for (const task of tasksFromPdf) {
-        const { os, clientAndDesc, prevEnt } = task;
+        const { os, clientAndDesc, prevEnt } = task; // prevEnt está como "DD/MM/YYYY"
         if (os.startsWith('111')) {
           outputHTML += `<li>🔒 OS ${os} ignorada (protegida)</li>`;
           continue;
         }
+        
+        // --- NOVO: Calcular as datas necessárias ---
+        const deliveryDateShort = prevEnt.substring(0, 5); // Pega "DD/MM" da data de entrega
+        const otherSectorsDate = calculateAndFormatPreviousDate(prevEnt, 2); // Calcula a data para os outros setores
 
         const { clientName, description } = splitClientAndDescription(clientAndDesc);
         const existing = existingTasks.find(t => t.osNumber === os);
 
         if (existing) {
           const docRef = doc(db, "tasks", existing.id);
+          // --- ALTERADO: Atualizar as datas de todos os status ---
           await updateDoc(docRef, {
             clientName,
             description,
             deliveryDate: convertDateToSortable(prevEnt),
-            statuses: existing.statuses.map(s => {
-              if (s.id === "entrega") return { ...s, date: prevEnt };
-              return s;
-            })
+            statuses: existing.statuses.map(s => ({
+              ...s, // Mantém o estado atual (ex: state-done)
+              date: s.id === "entrega" ? deliveryDateShort : otherSectorsDate,
+            }))
           });
-          outputHTML += `<li>🔄 Atualizado: OS ${os} - ${clientName} (Entrega: ${prevEnt})</li>`;
+          outputHTML += `<li>🔄 Atualizado: OS ${os} - ${clientName} (Entrega: ${deliveryDateShort})</li>`;
         } else {
+          // --- ALTERADO: Criar a nova tarefa com as datas corretas ---
+          const allStatuses = [
+            { id: 'compras', label: 'Compras' },
+            { id: 'arte', label: 'Arte Final' },
+            { id: 'impressao', label: 'Impressão' },
+            { id: 'acabamento', label: 'Acabamento' },
+            { id: 'corte', label: 'Corte' },
+            { id: 'faturamento', label: 'Faturamento' },
+            { id: 'instalacao', label: 'Instalação' },
+            { id: 'entrega', label: 'Entrega' }
+          ];
+
           await addDoc(tasksCollection, {
             osNumber: os,
             clientName,
             description,
             order: Date.now(),
             deliveryDate: convertDateToSortable(prevEnt),
-            statuses: [
-              { id: 'compras', label: 'Compras', state: 'state-pending', date: '' },
-              { id: 'arte', label: 'Arte Final', state: 'state-pending', date: '' },
-              { id: 'impressao', label: 'Impressão', state: 'state-pending', date: '' },
-              { id: 'acabamento', label: 'Acabamento', state: 'state-pending', date: '' },
-              { id: 'corte', label: 'Corte', state: 'state-pending', date: '' },
-              { id: 'faturamento', label: 'Faturamento', state: 'state-pending', date: '' },
-              { id: 'instalacao', label: 'Instalação', state: 'state-pending', date: '' },
-              { id: 'entrega', label: 'Entrega', state: 'state-pending', date: prevEnt }
-            ]
+            statuses: allStatuses.map(s => ({
+              ...s,
+              state: 'state-pending',
+              date: s.id === 'entrega' ? deliveryDateShort : otherSectorsDate
+            }))
           });
-          outputHTML += `<li>✅ Importado: OS ${os} - ${clientName} (Entrega: ${prevEnt})</li>`;
+          outputHTML += `<li>✅ Importado: OS ${os} - ${clientName} (Entrega: ${deliveryDateShort})</li>`;
         }
       }
 
