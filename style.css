@@ -13,8 +13,16 @@
 }
 
 html { scroll-behavior: smooth; }
-body { font-family: 'Poppins', sans-serif; background-color: var(--light-gray); margin: 0; padding: 20px; color: var(--text-color); user-select: none; }
+body { 
+    font-family: 'Poppins', sans-serif; 
+    background-color: var(--light-gray); 
+    margin: 0; 
+    padding: 20px 20px 220px 20px; /* Aumentado padding-bottom para não esconder conteúdo */
+    color: var(--text-color); 
+    user-select: none; 
+}
 .kanban-board { max-width: 95%; margin: 0 auto; background-color: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 8px 30px var(--shadow-color); }
+/* ... (todo o resto do CSS do kanban permanece o mesmo) ... */
 .board-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 1rem; }
 h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .search-container { display: flex; align-items: center; margin: 0 10px; }
@@ -69,27 +77,35 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .sector-task-execution-date, .sector-task-delivery { color: var(--text-muted); font-size: 14px; min-width: 130px; }
 .sector-task-action { margin-left: auto; padding-left: 1rem; }
 
-/* --- NOVOS ESTILOS PARA O PAINEL DE PROGRAMAÇÃO GLOBAL --- */
+
+/* --- ESTILOS PARA O PAINEL FLUTUANTE DE PROGRAMAÇÃO COMPACTO --- */
 #global-schedule-panel {
-    max-width: 95%;
-    margin: 40px auto 20px auto; /* Adiciona espaço acima */
-    background-color: #fff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 8px 30px var(--shadow-color);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000; /* Garante que fique na frente */
+    
+    background-color: #ffffff;
+    padding: 12px 0; /* Padding vertical reduzido */
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1); /* Sombra para dar elevação */
+    border-top: 1px solid var(--border-color);
 }
-#global-schedule-panel h2 {
-    font-size: 24px;
+.schedule-panel-content {
+    max-width: 95%; /* Alinha com o kanban board */
+    margin: 0 auto;
+}
+.schedule-panel-content h2 {
+    font-size: 18px; /* Fonte do título reduzida */
     font-weight: 600;
-    margin: 0 0 24px 0;
+    margin: 0 0 12px 0; /* Margem do título reduzida */
     color: var(--text-color);
 }
 .weekly-schedule-container {
     display: flex;
-    gap: 20px;
-    padding: 15px 10px;
-    background-color: #f7f9fc;
-    border-radius: 8px;
+    gap: 15px; /* Espaço entre as semanas reduzido */
+    padding: 0;
+    background-color: transparent;
 }
 .weekly-schedule-week {
     flex: 1;
@@ -97,22 +113,22 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     grid-template-columns: repeat(5, 1fr);
     gap: 5px;
     border: 1px solid var(--border-color);
-    padding: 8px;
+    padding: 8px; /* Padding interno da semana reduzido */
     border-radius: 8px;
-    background-color: #fff;
+    background-color: #f8f9fa;
 }
 .weekly-schedule-day {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px; /* Espaço entre os inputs reduzido */
 }
 .weekly-schedule-header {
     font-weight: 600;
     text-align: center;
-    font-size: 12px;
+    font-size: 11px; /* Fonte do header do dia reduzida */
     color: var(--text-muted);
     text-transform: uppercase;
-    padding-bottom: 5px;
+    padding-bottom: 4px;
     border-bottom: 1px solid var(--border-color);
 }
 .weekly-schedule-input {
@@ -120,8 +136,8 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     box-sizing: border-box;
     border: 1px solid #ddd;
     border-radius: 4px;
-    padding: 6px;
-    font-size: 13px;
+    padding: 4px; /* Padding do input reduzido */
+    font-size: 12px; /* Fonte do input reduzida */
     text-align: center;
     background-color: #fff;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -131,6 +147,7 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
 }
+
 
 /* --- ESTILOS PARA O MODO DE IMPRESSÃO --- */
 body.print-mode { background: #fff !important; }
