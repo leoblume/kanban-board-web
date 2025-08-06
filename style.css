@@ -25,13 +25,12 @@ h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
 #search-counter { margin-left: 12px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
 .kanban-table { min-width: 1300px; overflow-x: auto; padding-left: 5px;}
 
-/* --- Linhas mais compactas --- */
 .kanban-header, .kanban-row {
     display: grid;
     grid-template-columns: 40px 2.5fr repeat(8, 1fr) 80px;
     align-items: center;
-    gap: 10px; /* Reduzido */
-    padding: 4px 8px; /* Reduzido */
+    gap: 10px;
+    padding: 4px 8px;
     border-bottom: 1px solid var(--border-color);
 }
 .kanban-header {
@@ -47,46 +46,44 @@ h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
 .kanban-row:hover { background-color: var(--hover-color); }
 .kanban-row.dragging { opacity: 0.5; background: #cce5ff; }
 .kanban-header > *:nth-child(1), .kanban-row > .cell:nth-child(1) { position: sticky; left: 0; z-index: 2; background-color: inherit; }
-.kanban-header > *:nth-child(2), .kanban-row > .cell:nth-child(2) { position: sticky; left: 50px; /* Ajustado */ z-index: 2; background-color: inherit; border-right: 1px solid var(--border-color); padding-right: 16px; }
+.kanban-header > *:nth-child(2), .kanban-row > .cell:nth-child(2) { position: sticky; left: 50px; z-index: 2; background-color: inherit; border-right: 1px solid var(--border-color); padding-right: 16px; }
 .kanban-header > .header-cell, .kanban-header > a.header-link { background-color: #fff; }
 .kanban-row.highlight { background-color: var(--highlight-color); }
-.cell { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; /* Reduzido */ }
+.cell { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
 .cell-drag-handle, .cell-actions { flex-direction: row; }
 .cell-drag-handle { cursor: grab; }
 .cell-client { flex-direction: column; align-items: flex-start; }
-.cell-client input { border: none; background: transparent; width: 100%; padding: 1px 0; /* Reduzido */ border-radius: 4px; }
+.cell-client input { border: none; background: transparent; width: 100%; padding: 1px 0; border-radius: 4px; }
 .cell-client input:focus { background-color: #f0f3ff; padding-left: 4px; }
 
-/* --- Fontes menores --- */
 .cell-client .os-number-input {
-    font-size: 14px; /* Reduzido */
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-color);
 }
 .cell-client .client-name-input {
-    font-size: 12px; /* Reduzido */
+    font-size: 12px;
     font-weight: 400;
     color: var(--text-muted);
 }
-.status-control { display: flex; align-items: center; gap: 6px; /* Reduzido */ }
+.status-control { display: flex; align-items: center; gap: 6px; }
 .status-label-mobile { display: none; }
 
-/* --- Controles menores --- */
 .status-date-input {
-    width: 55px; /* Reduzido */
-    padding: 2px; /* Reduzido */
+    width: 55px;
+    padding: 2px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-size: 12px; /* Reduzido */
+    font-size: 12px;
     text-align: center;
 }
 .status-button {
-    width: 20px; /* Reduzido */
-    height: 20px; /* Reduzido */
+    width: 20px;
+    height: 20px;
     border: 2px solid var(--border-color);
     background-color: #fff;
     cursor: pointer;
-    border-radius: 5px; /* Reduzido */
+    border-radius: 5px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -101,8 +98,8 @@ h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
 .state-done::before { content: '✓'; line-height: 18px; font-size: 16px; }
 .state-blocked { background-color: var(--red-color); border-color: var(--red-color); color: white; }
 .state-blocked::before { content: 'X'; line-height: 18px; font-size: 14px; }
-.cell-actions { gap: 2px; /* Reduzido */ }
-.action-button { background: none; border: none; color: #adb5bd; font-size: 20px; /* Reduzido */ cursor: pointer; border-radius: 50%; width: 28px; /* Reduzido */ height: 28px; /* Reduzido */ transition: background-color 0.2s, color 0.2s; display: flex; align-items: center; justify-content: center; }
+.cell-actions { gap: 2px; }
+.action-button { background: none; border: none; color: #adb5bd; font-size: 20px; cursor: pointer; border-radius: 50%; width: 28px; height: 28px; transition: background-color 0.2s, color 0.2s; display: flex; align-items: center; justify-content: center; }
 .add-row-button, .import-button, .export-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 16px; font-weight: 500; color: white; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; }
 .add-row-button { background-color: var(--primary-color); }
 .import-button { background-color: var(--green-color); transition: background-color 0.2s; margin: 0 12px; }
@@ -113,7 +110,6 @@ h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
 .kanban-header.is-sticky { position: fixed; top: 0; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 .header-placeholder { display: none; }
 
-/* --- ESTILOS DO PAINEL DE PROGRAMAÇÃO SEMANAL --- */
 #weekly-schedule-panel { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; border-top: 1px solid var(--border-color); box-shadow: 0 -4px 15px rgba(0,0,0,0.08); z-index: 200; display: flex; justify-content: center; padding: 10px; box-sizing: border-box; gap: 10px; flex-wrap: wrap; }
 .schedule-week { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; flex-grow: 1; max-width: 600px; min-width: 300px; }
 .schedule-separator { width: 2px; background-color: var(--border-color); }
@@ -125,13 +121,10 @@ h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
 .schedule-item-text { text-align: left; word-break: break-word; flex-grow: 1; }
 .delete-schedule-item-btn { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 16px; height: 16px; border: none; background: transparent; color: #adb5bd; cursor: pointer; border-radius: 50%; font-size: 16px; line-height: 1; padding: 0; }
 .delete-schedule-item-btn:hover { color: var(--text-color); background-color: #e9ecef; }
-
-/* --- RESPONSIVIDADE DO PAINEL FLUTUANTE --- */
 @media (max-width: 1280px) { .schedule-week { max-width: 500px; } }
 @media (max-width: 1024px) { #weekly-schedule-panel { flex-direction: column; align-items: center; padding-bottom: 20px; } .schedule-separator { display: none; } .schedule-week { width: 95%; max-width: 600px; } body { padding-bottom: 380px; } }
 @media (max-width: 600px) { .schedule-week { grid-template-columns: 1fr; } body { padding-bottom: 450px; } #weekly-schedule-panel { overflow-y: auto; max-height: 60vh; } .schedule-day { height: 180px; } .drop-zone { height: 100%; } }
 
-/* --- ESTILOS DE IMPRESSÃO --- */
 body.print-mode { background: #fff !important; padding-bottom: 0; }
 .print-mode #weekly-schedule-panel, .print-mode .kanban-header.is-sticky, .print-mode .board-title-header, .print-mode .header-placeholder { display: none !important; }
 .print-mode .kanban-table { min-width: auto; overflow: visible; padding-left: 0; }
