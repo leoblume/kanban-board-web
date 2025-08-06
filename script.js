@@ -1,4 +1,3 @@
-// --- START OF FILE script.js ---
 
 // --- Importações do Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
