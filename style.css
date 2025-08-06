@@ -1,30 +1,28 @@
---- START OF FILE style.css ---
-
 :root {
     --primary-color: #0d6efd;
     --green-color: #198754;
     --red-color: #dc3545;
     --orange-color: #fd7e14;
-    --highlight-color: #fff3cd;
+    --highlight-color: #fff3cd; 
     --light-gray: #f8f9fa;
     --border-color: #e9ecef;
     --text-color: #212529;
     --text-muted: #6c757d;
     --shadow-color: rgba(0, 0, 0, 0.05);
-    --hover-color: #e7f1ff;
+    --hover-color: #e7f1ff; 
 }
 
 html { scroll-behavior: smooth; }
-body {
-    font-family: 'Poppins', sans-serif;
-    background-color: var(--light-gray);
-    margin: 0;
-    /* Padding inferior aumentado para não esconder conteúdo atrás do painel flutuante */
-    padding: 20px 20px 200px 20px;
-    color: var(--text-color);
-    user-select: none;
+body { 
+    font-family: 'Poppins', sans-serif; 
+    background-color: var(--light-gray); 
+    margin: 0; 
+    padding: 20px 20px 220px 20px; /* Aumentado padding-bottom para não esconder conteúdo */
+    color: var(--text-color); 
+    user-select: none; 
 }
 .kanban-board { max-width: 95%; margin: 0 auto; background-color: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 8px 30px var(--shadow-color); }
+/* ... (todo o resto do CSS do kanban permanece o mesmo) ... */
 .board-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 1rem; }
 h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .search-container { display: flex; align-items: center; margin: 0 10px; }
@@ -72,6 +70,12 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .export-button:hover { background-color: #d86a0c; }
 .export-button:disabled { background-color: #6c757d; cursor: not-allowed; }
 .header-placeholder { display: none; }
+.sector-task-card { display: flex; align-items: center; gap: 1.5rem; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; background-color: #fff; box-shadow: 0 2px 5px var(--shadow-color); flex-wrap: wrap; }
+.sector-task-os, .sector-task-client, .sector-task-execution-date, .sector-task-delivery { font-size: 15px; white-space: nowrap; }
+.sector-task-os { font-weight: 600; color: var(--text-color); min-width: 80px; }
+.sector-task-client { flex-grow: 1; font-weight: 500; color: #495057; }
+.sector-task-execution-date, .sector-task-delivery { color: var(--text-muted); font-size: 14px; min-width: 130px; }
+.sector-task-action { margin-left: auto; padding-left: 1rem; }
 
 
 /* --- ESTILOS PARA O PAINEL FLUTUANTE DE PROGRAMAÇÃO COMPACTO --- */
@@ -80,42 +84,43 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
     bottom: 0;
     left: 0;
     width: 100%;
-    z-index: 1000; /* Garante que fique sobre todo o conteúdo */
+    z-index: 1000; /* Garante que fique na frente */
+    
     background-color: #ffffff;
-    padding: 12px 0;
-    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+    padding: 12px 0; /* Padding vertical reduzido */
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1); /* Sombra para dar elevação */
     border-top: 1px solid var(--border-color);
 }
 .schedule-panel-content {
-    max-width: 95%; /* Alinha com a largura do kanban board */
+    max-width: 95%; /* Alinha com o kanban board */
     margin: 0 auto;
 }
 .schedule-panel-content h2 {
-    font-size: 18px;
+    font-size: 18px; /* Fonte do título reduzida */
     font-weight: 600;
-    margin: 0 0 12px 0;
+    margin: 0 0 12px 0; /* Margem do título reduzida */
     color: var(--text-color);
 }
 .weekly-schedule-container {
     display: flex;
-    gap: 10px; /* Espaço entre as semanas reduzido */
+    gap: 15px; /* Espaço entre as semanas reduzido */
     padding: 0;
     background-color: transparent;
 }
 .weekly-schedule-week {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5 colunas para os dias da semana */
-    gap: 5px; /* Espaçamento entre os dias da semana reduzido */
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
     border: 1px solid var(--border-color);
-    padding: 6px; /* Padding interno da semana reduzido */
+    padding: 8px; /* Padding interno da semana reduzido */
     border-radius: 8px;
     background-color: #f8f9fa;
 }
 .weekly-schedule-day {
     display: flex;
     flex-direction: column;
-    gap: 4px; /* Espaço entre o header do dia e o input reduzido */
+    gap: 4px; /* Espaço entre os inputs reduzido */
 }
 .weekly-schedule-header {
     font-weight: 600;
@@ -147,7 +152,6 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 /* --- ESTILOS PARA O MODO DE IMPRESSÃO --- */
 body.print-mode { background: #fff !important; }
 .print-mode .kanban-board { max-width: 100%; box-shadow: none; border: none; }
-/* Esconde o painel flutuante e os botões no modo de impressão */
 .print-mode .board-title-header, .print-mode .header-placeholder, .print-mode #global-schedule-panel { display: none !important; }
 .print-mode .kanban-table { min-width: auto; overflow: visible; padding-left: 0; }
 .print-mode .kanban-header, .print-mode .kanban-row { font-size: 9pt; grid-template-columns: 3.5fr repeat(8, 1fr); gap: 4px; padding: 6px 4px; align-items: start; border-bottom: 1px solid #ccc; }
