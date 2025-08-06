@@ -36,8 +36,6 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .kanban-row.highlight { background-color: var(--highlight-color); }
 .cell { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; }
 .cell-drag-handle, .cell-actions { flex-direction: row; }
-.cell-drag-handle { cursor: grab; }
-.kanban-row.dragging { opacity: 0.5; background: var(--hover-color); }
 .cell-client { flex-direction: column; align-items: flex-start; }
 .cell-client input { border: none; background: transparent; width: 100%; padding: 2px 0; border-radius: 4px; }
 .cell-client input:focus { background-color: #f0f3ff; padding-left: 4px; }
@@ -63,9 +61,6 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .export-button { background-color: var(--orange-color); transition: background-color 0.2s; }
 .export-button:hover { background-color: #d86a0c; }
 .export-button:disabled { background-color: #6c757d; cursor: not-allowed; }
-
-/* Header Fixo e Modo de Impressão */
-.kanban-header.is-sticky { position: fixed; top: 0; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 .header-placeholder { display: none; }
 .sector-task-card { display: flex; align-items: center; gap: 1.5rem; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; background-color: #fff; box-shadow: 0 2px 5px var(--shadow-color); flex-wrap: wrap; }
 .sector-task-os, .sector-task-client, .sector-task-execution-date, .sector-task-delivery { font-size: 15px; white-space: nowrap; }
@@ -74,10 +69,73 @@ h1 { font-size: 28px; font-weight: 600; margin: 0; flex-grow: 1; }
 .sector-task-execution-date, .sector-task-delivery { color: var(--text-muted); font-size: 14px; min-width: 130px; }
 .sector-task-action { margin-left: auto; padding-left: 1rem; }
 
-/* --- ESTILOS PARA O MODO DE IMPRESSÃO CONDENSADO (PDF) --- */
+/* --- NOVOS ESTILOS PARA O PAINEL DE PROGRAMAÇÃO GLOBAL --- */
+#global-schedule-panel {
+    max-width: 95%;
+    margin: 40px auto 20px auto; /* Adiciona espaço acima */
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 8px 30px var(--shadow-color);
+}
+#global-schedule-panel h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 24px 0;
+    color: var(--text-color);
+}
+.weekly-schedule-container {
+    display: flex;
+    gap: 20px;
+    padding: 15px 10px;
+    background-color: #f7f9fc;
+    border-radius: 8px;
+}
+.weekly-schedule-week {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    border-radius: 8px;
+    background-color: #fff;
+}
+.weekly-schedule-day {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.weekly-schedule-header {
+    font-weight: 600;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border-color);
+}
+.weekly-schedule-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 13px;
+    text-align: center;
+    background-color: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.weekly-schedule-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+/* --- ESTILOS PARA O MODO DE IMPRESSÃO --- */
 body.print-mode { background: #fff !important; }
 .print-mode .kanban-board { max-width: 100%; box-shadow: none; border: none; }
-.print-mode .board-title-header, .print-mode .header-placeholder { display: none !important; }
+.print-mode .board-title-header, .print-mode .header-placeholder, .print-mode #global-schedule-panel { display: none !important; }
 .print-mode .kanban-table { min-width: auto; overflow: visible; padding-left: 0; }
 .print-mode .kanban-header, .print-mode .kanban-row { font-size: 9pt; grid-template-columns: 3.5fr repeat(8, 1fr); gap: 4px; padding: 6px 4px; align-items: start; border-bottom: 1px solid #ccc; }
 .print-mode .kanban-header { position: static !important; }
@@ -92,132 +150,3 @@ body.print-mode { background: #fff !important; }
 .print-mode .status-control { gap: 4px; }
 .print-mode .status-button { width: 14px; height: 14px; }
 .print-mode .status-button::before { font-size: 9pt !important; line-height: 12px !important; }
-
-/* --- NOVOS ESTILOS PARA O AGENDADOR SEMANAL --- */
-.weekly-scheduler-container {
-    max-width: 95%;
-    /* Reduzido o tamanho da fonte e espaçamento para ocupar menos espaço vertical */
-    height: auto; /* Altura auto para se ajustar ao conteúdo */
-    max-height: calc(100vh / 5 * 1.2); /* Altura máxima para ser ~1/5 da tela com uma margem */
-    overflow-y: auto; /* Adiciona scroll se necessário */
-    margin: 20px auto;
-    padding: 16px;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 30px var(--shadow-color);
-}
-
-.weekly-scheduler-container h2 {
-    font-size: 20px;
-    font-weight: 600;
-    margin-top: 0;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.week-view {
-    margin-bottom: 20px;
-}
-
-.week-view:last-child {
-    margin-bottom: 0;
-}
-
-.week-view h3 {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-muted);
-    margin-top: 0;
-    margin-bottom: 12px;
-}
-
-.week-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5 colunas para os dias da semana */
-    gap: 12px;
-}
-
-.day-column {
-    background-color: var(--light-gray);
-    border-radius: 6px;
-    padding: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.day-header {
-    font-weight: 600;
-    text-align: center;
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid #ddd;
-    font-size: 13px;
-    text-transform: capitalize;
-}
-
-.day-slots {
-    min-height: 100px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.drop-slot {
-    border: 1px dashed #ccc;
-    border-radius: 4px;
-    height: 32px;
-    transition: background-color 0.2s, border-color 0.2s;
-    flex-shrink: 0;
-}
-
-/* Estilo para quando um item está sendo arrastado sobre o slot */
-.drop-slot.drag-over {
-    background-color: var(--hover-color);
-    border-color: var(--primary-color);
-    border-style: solid;
-}
-
-/* Estilo para um item que foi agendado */
-.scheduled-task-item {
-    background-color: #fff;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: default;
-    height: 32px; /* Mesma altura do slot vazio */
-    box-sizing: border-box;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.scheduled-task-item .info {
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.scheduled-task-item .unschedule-button {
-    background: none;
-    border: none;
-    color: var(--red-color);
-    font-weight: bold;
-    cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.2s;
-    padding: 0 4px;
-    font-size: 16px;
-    line-height: 1;
-}
-
-.scheduled-task-item:hover .unschedule-button {
-    opacity: 1;
-}
-
-
-@media (max-width: 992px) { /* etc... */ }
