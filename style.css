@@ -13,7 +13,7 @@
 }
 
 html { scroll-behavior: smooth; }
-body { font-family: 'Poppins', sans-serif; background-color: var(--light-gray); margin: 0; padding: 20px; color: var(--text-color); user-select: none; /* NOVO: Adiciona preenchimento inferior para não cobrir conteúdo */ padding-bottom: 220px; }
+body { font-family: 'Poppins', sans-serif; background-color: var(--light-gray); margin: 0; padding: 20px; color: var(--text-color); user-select: none; padding-bottom: 220px; }
 .kanban-board { max-width: 95%; margin: 0 auto; background-color: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 8px 30px var(--shadow-color); }
 .board-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 1rem; }
 h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
@@ -63,81 +63,56 @@ h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
 .export-button { background-color: var(--orange-color); transition: background-color 0.2s; }
 .export-button:hover { background-color: #d86a0c; }
 .export-button:disabled { background-color: #6c757d; cursor: not-allowed; }
-
-/* Header Fixo */
 .kanban-header.is-sticky { position: fixed; top: 0; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 .header-placeholder { display: none; }
 
-/* --- NOVO: ESTILOS PARA PAINEL DE PROGRAMAÇÃO SEMANAL --- */
-#weekly-schedule-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: #ffffff;
-    border-top: 1px solid var(--border-color);
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
-    z-index: 200;
-    display: flex;
-    justify-content: center;
-    padding: 10px;
-    box-sizing: border-box;
-    gap: 10px;
-}
-.schedule-week {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-    flex-grow: 1;
-    max-width: 600px;
-}
-.schedule-separator {
-    width: 2px;
-    background-color: var(--border-color);
-}
-.schedule-day {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background-color: var(--light-gray);
-}
-.schedule-day-header {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-align: center;
-    padding: 6px 4px;
-    border-bottom: 1px solid var(--border-color);
-    background-color: #fff;
-    border-radius: 6px 6px 0 0;
-}
-.drop-zone {
-    min-height: 120px;
-    padding: 6px;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    transition: background-color 0.2s;
-}
-.drop-zone.drag-over {
-    background-color: var(--hover-color);
-}
-.schedule-item {
-    font-size: 11px;
-    padding: 4px 6px;
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    border-left: 3px solid var(--primary-color);
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* --- ESTILOS DO PAINEL DE PROGRAMAÇÃO SEMANAL --- */
+#weekly-schedule-panel { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; border-top: 1px solid var(--border-color); box-shadow: 0 -4px 15px rgba(0,0,0,0.08); z-index: 200; display: flex; justify-content: center; padding: 10px; box-sizing: border-box; gap: 10px; flex-wrap: wrap; }
+.schedule-week { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; flex-grow: 1; max-width: 600px; min-width: 300px; }
+.schedule-separator { width: 2px; background-color: var(--border-color); }
+.schedule-day { display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--light-gray); }
+.schedule-day-header { font-size: 12px; font-weight: 600; color: var(--text-muted); text-align: center; padding: 6px 4px; border-bottom: 1px solid var(--border-color); background-color: #fff; border-radius: 6px 6px 0 0; }
+.drop-zone { min-height: 120px; padding: 6px; flex-grow: 1; display: flex; flex-direction: column; gap: 4px; transition: background-color 0.2s; }
+.drop-zone.drag-over { background-color: var(--hover-color); }
+
+/* --- ATUALIZADO: ESTILOS DO ITEM NA PROGRAMAÇÃO --- */
+.schedule-item { display: flex; align-items: center; justify-content: space-between; font-size: 11px; padding: 4px 2px 4px 6px; background-color: #fff; border: 1px solid #dee2e6; border-left: 3px solid var(--primary-color); border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); gap: 4px; }
+.schedule-item-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.delete-schedule-item-btn { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 16px; height: 16px; border: none; background: transparent; color: #adb5bd; cursor: pointer; border-radius: 50%; font-size: 16px; line-height: 1; padding: 0; }
+.delete-schedule-item-btn:hover { color: var(--text-color); background-color: #e9ecef; }
+
+/* --- NOVO: RESPONSIVIDADE DO PAINEL FLUTUANTE --- */
+@media (max-width: 1280px) {
+    .schedule-week { max-width: 500px; }
 }
 
-/* Modo de Impressão */
+@media (max-width: 1024px) {
+    #weekly-schedule-panel { flex-direction: column; align-items: center; padding-bottom: 20px; }
+    .schedule-separator { display: none; }
+    .schedule-week { width: 95%; max-width: 600px; }
+    body { padding-bottom: 350px; }
+}
+
+@media (max-width: 600px) {
+    .schedule-week { grid-template-columns: 1fr; }
+    body { padding-bottom: 400px; } /* Aumenta ainda mais o padding para rolagem */
+    #weekly-schedule-panel { overflow-y: auto; max-height: 50vh; }
+}
+
+/* --- ESTILOS DE IMPRESSÃO (sem alterações) --- */
 body.print-mode { background: #fff !important; padding-bottom: 0; }
-.print-mode #weekly-schedule-panel, .print-mode .kanban-header.is-sticky { display: none !important; }
-/* Restante dos estilos de impressão permanecem os mesmos... */
+.print-mode #weekly-schedule-panel, .print-mode .kanban-header.is-sticky, .print-mode .board-title-header, .print-mode .header-placeholder { display: none !important; }
+.print-mode .kanban-table { min-width: auto; overflow: visible; padding-left: 0; }
+.print-mode .kanban-header, .print-mode .kanban-row { font-size: 9pt; grid-template-columns: 3.5fr repeat(8, 1fr); gap: 4px; padding: 6px 4px; align-items: start; border-bottom: 1px solid #ccc; }
+.print-mode .kanban-header { position: static !important; }
+.print-mode .cell:first-child, .print-mode .header-cell:first-child, .print-mode .cell:last-child, .print-mode .header-cell:last-child { display: none; }
+.print-mode .cell-client { padding-right: 10px; box-sizing: border-box; }
+.print-mode .cell-client input, .print-mode .status-date-input { display: none; }
+.pdf-client-info { display: flex; align-items: baseline; gap: 8px; }
+.pdf-os { font-weight: 600; font-size: 10pt; flex-shrink: 0; }
+.pdf-client { font-size: 9pt; color: #333; word-break: break-word; }
+.pdf-date-text { font-size: 8pt; text-align: center; }
+.print-mode .kanban-row .cell:nth-last-child(2) { justify-content: flex-start; }
+.print-mode .status-control { gap: 4px; }
+.print-mode .status-button { width: 14px; height: 14px; }
+.print-mode .status-button::before { font-size: 9pt !important; line-height: 12px !important; }
