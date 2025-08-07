@@ -14,7 +14,7 @@
 
 html { scroll-behavior: smooth; }
 body { font-family: 'Poppins', sans-serif; background-color: var(--light-gray); margin: 0; padding: 20px; color: var(--text-color); user-select: none; padding-bottom: 220px; }
-.kanban-board { max-width: 95%; margin: 0 auto; background-color: #fff; border-radius: 12px; padding: 100px; box-shadow: 0 8px 30px var(--shadow-color); }
+.kanban-board { max-width: 95%; margin: 0 auto; background-color: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 8px 30px var(--shadow-color); }
 .board-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 1rem; }
 
 /* AJUSTE 1: Tamanho da fonte do título reduzido em 50% (de 26px para 13px) */
