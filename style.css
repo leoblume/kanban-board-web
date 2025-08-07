@@ -16,7 +16,10 @@ html { scroll-behavior: smooth; }
 body { font-family: 'Poppins', sans-serif; background-color: var(--light-gray); margin: 0; padding: 20px; color: var(--text-color); user-select: none; padding-bottom: 220px; }
 .kanban-board { max-width: 95%; margin: 0 auto; background-color: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 8px 30px var(--shadow-color); }
 .board-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 1rem; }
-h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
+
+/* AJUSTE 1: Tamanho da fonte do título reduzido em 50% (de 26px para 13px) */
+h1 { font-size: 13px; font-weight: 600; margin: 0; flex-grow: 1; }
+
 .search-container { display: flex; align-items: center; margin: 0 10px; }
 #search-input { width: 250px; padding: 8px 12px; font-size: 14px; border: 1px solid var(--border-color); border-right: none; border-radius: 8px 0 0 8px; background-color: var(--light-gray); }
 #search-input:focus { outline: 1px solid var(--primary-color); z-index: 2; background-color: #fff; }
@@ -100,7 +103,22 @@ h1 { font-size: 26px; font-weight: 600; margin: 0; flex-grow: 1; }
 .state-blocked::before { content: 'X'; line-height: 18px; font-size: 14px; }
 .cell-actions { gap: 2px; }
 .action-button { background: none; border: none; color: #adb5bd; font-size: 20px; cursor: pointer; border-radius: 50%; width: 28px; height: 28px; transition: background-color 0.2s, color 0.2s; display: flex; align-items: center; justify-content: center; }
-.add-row-button, .import-button, .export-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 16px; font-weight: 500; color: white; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; }
+
+/* AJUSTE 2: Tamanho dos botões reduzido para ~60% do original */
+.add-row-button, .import-button, .export-button { 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 5px; /* de 8px para 5px */
+    padding: 6px 12px; /* de 10px 20px para 6px 12px */
+    font-size: 10px; /* de 16px para 10px */
+    font-weight: 500; 
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    text-decoration: none; 
+}
+
 .add-row-button { background-color: var(--primary-color); }
 .import-button { background-color: var(--green-color); transition: background-color 0.2s; margin: 0 12px; }
 .import-button:hover { background-color: #157347; }
