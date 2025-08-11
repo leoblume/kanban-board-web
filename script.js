@@ -26,7 +26,6 @@ const searchButton = document.getElementById('search-button');
 const searchCounter = document.getElementById('search-counter');
 const exportPdfButton = document.getElementById('export-pdf-button');
 const weeklySchedulePanel = document.getElementById('weekly-schedule-panel');
-// **NOVO:** Seletores para os botões de mostrar/ocultar painel
 const hideScheduleButton = document.getElementById('hide-schedule-button');
 const showScheduleButton = document.getElementById('show-schedule-button');
 
@@ -44,6 +43,9 @@ const renderAllTasks = (tasksToRender) => {
         rowElement.className = 'kanban-row';
         rowElement.draggable = true;
         rowElement.id = task.id;
+        // **INÍCIO DA CORREÇÃO**
+        // A estrutura HTML gerada aqui foi corrigida para corresponder ao CSS,
+        // garantindo o alinhamento correto das colunas.
         rowElement.innerHTML = `
             <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
@@ -52,10 +54,9 @@ const renderAllTasks = (tasksToRender) => {
             </div>
             ${task.statuses.map(s => `
                 <div class="cell">
-                    <span class="status-label-mobile">${s.label}</span>
                     <div class="status-control">
-                        <input type="text" class="status-date-input" placeholder="dd/mm" value="${s.date || ''}" data-status-id="${s.id}">
                         <button class="status-button ${s.state}" data-status-id="${s.id}"></button>
+                        <input type="text" class="status-date-input" placeholder="dd/mm" value="${s.date || ''}" data-status-id="${s.id}">
                     </div>
                 </div>
             `).join('')}
@@ -66,6 +67,7 @@ const renderAllTasks = (tasksToRender) => {
                 <button class="action-button delete-button" title="Excluir Linha">×</button>
             </div>
         `;
+        // **FIM DA CORREÇÃO**
         kanbanBody.appendChild(rowElement);
     });
 };
@@ -85,56 +87,49 @@ kanbanBody.addEventListener('dragover', (e) => { e.preventDefault(); const after
 function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.kanban-row:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) return { offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element; }
 
 // --- LÓGICA DA PROGRAMAÇÃO SEMANAL (AJUSTADA) ---
-/**
- * **MODIFICADO:** Cria e formata um item para o painel de agendamento.
- * @param {string} os - O número da OS.
- * @param {string} client - O nome completo do cliente.
- * @returns {HTMLElement} O elemento do item do agendamento.
- */
 function renderScheduleItem(os, client) {
     const item = document.createElement('div');
     item.className = 'schedule-item';
     item.dataset.os = os;
-    item.dataset.client = client; // Guarda o nome completo no dataset
-
-    // Lógica de abreviação
+    item.dataset.client = client;
     const clientName = client || '';
-    let firstWord = clientName.split(' ')[0]; // Pega a primeira palavra
+    let firstWord = clientName.split(' ')[0];
     if (firstWord.length > 8) {
-        firstWord = firstWord.substring(0, 8); // Abrevia para 8 caracteres
+        firstWord = firstWord.substring(0, 8);
     }
     const formattedText = `${os} ${firstWord}`.trim();
-
-    // Remove a "/" e usa o nome abreviado. Adiciona 'title' para ver nome completo.
     item.innerHTML = `
         <span class="schedule-item-text" title="${os} ${client}">${formattedText}</span>
         <button class="delete-schedule-item-btn" title="Excluir">×</button>
     `;
     return item;
 }
-
 onSnapshot(scheduleCollection, (snapshot) => { document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); snapshot.forEach(doc => { const dayId = doc.id; const tasks = doc.data().tasks || []; const zone = document.getElementById(dayId); if (zone) { tasks.forEach(task => { zone.appendChild(renderScheduleItem(task.osNumber, task.clientName)); }); } }); });
 weeklySchedulePanel.addEventListener('dragover', e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.add('drag-over'); });
 weeklySchedulePanel.addEventListener('dragleave', e => { const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.remove('drag-over'); });
 weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) { dropZone.classList.remove('drag-over'); try { const taskData = JSON.parse(e.dataTransfer.getData('application/json')); if (taskData.osNumber && taskData.clientName) { const dayId = dropZone.id; const scheduleDocRef = doc(db, "schedule", dayId); await setDoc(scheduleDocRef, { tasks: arrayUnion(taskData) }, { merge: true }); } } catch (error) { console.error("Erro ao salvar na programação:", error); } } });
 weeklySchedulePanel.addEventListener('click', async e => { if (e.target.classList.contains('delete-schedule-item-btn')) { const item = e.target.closest('.schedule-item'); const zone = e.target.closest('.drop-zone'); if (item && zone) { const taskToRemove = { osNumber: item.dataset.os, clientName: item.dataset.client }; const dayId = zone.id; const scheduleDocRef = doc(db, "schedule", dayId); try { await updateDoc(scheduleDocRef, { tasks: arrayRemove(taskToRemove) }); } catch (error) { console.error("Erro ao excluir da programação:", error); } } } });
 
-// --- LÓGICA PARA MOSTRAR/OCULTAR PAINEL (NOVO) ---
+// --- LÓGICA PARA MOSTRAR/OCULTAR PAINEL ---
 const setSchedulePanelVisibility = (isHidden) => {
     document.body.classList.toggle('schedule-is-hidden', isHidden);
     localStorage.setItem('scheduleHidden', isHidden ? 'true' : 'false');
 };
-
 hideScheduleButton.addEventListener('click', () => setSchedulePanelVisibility(true));
 showScheduleButton.addEventListener('click', () => setSchedulePanelVisibility(false));
 
-// Inicializa a visibilidade do painel com base no localStorage
+// --- INICIALIZAÇÃO E EVENTOS GLOBAIS ---
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('scheduleHidden') === 'true') {
         setSchedulePanelVisibility(true);
     }
+    window.addEventListener('scroll', handleStickyHeader);
+    window.addEventListener('resize', handleStickyHeader);
+    searchButton.addEventListener('click', handleSearch);
+    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
+    searchInput.addEventListener('input', clearSearchState);
+    exportPdfButton.addEventListener('click', exportToPDF);
 });
 
-
 // --- PESQUISA, HEADER FIXO, PDF ---
-let currentSearchTerm = ''; let currentMatchingIndices = []; let searchResultPointer = -1; const clearSearchState = () => { currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1; searchCounter.textContent = ''; document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); }; const handleSearch = () => { const newSearchTerm = searchInput.value.toLowerCase().trim(); if (!newSearchTerm) { clearSearchState(); return; } if (newSearchTerm !== currentSearchTerm) { currentSearchTerm = newSearchTerm; currentMatchingIndices = tasks.reduce((acc, task, index) => { if (task.clientName.toLowerCase().includes(currentSearchTerm) || task.osNumber.toLowerCase().includes(currentSearchTerm)) { acc.push(index); } return acc; }, []); searchResultPointer = -1; } if (currentMatchingIndices.length === 0) { searchCounter.textContent = '0/0'; alert('Nenhum item encontrado.'); return; } searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length; const taskIndexToShow = currentMatchingIndices[searchResultPointer]; const foundTask = tasks[taskIndexToShow]; const foundRow = document.getElementById(foundTask.id); if (foundRow) { document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); foundRow.classList.add('highlight'); searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`; } }; searchButton.addEventListener('click', handleSearch); searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); }); searchInput.addEventListener('input', clearSearchState); function handleStickyHeader() { const header = document.querySelector('.kanban-header'); const placeholder = document.querySelector('.header-placeholder'); const kanbanTable = document.querySelector('.kanban-table'); if (!header || !placeholder || !kanbanTable) return; const scrollTriggerPoint = kanbanTable.offsetTop; if (window.pageYOffset > scrollTriggerPoint) { if (!header.classList.contains('is-sticky')) { header.classList.add('is-sticky'); placeholder.style.display = 'block'; } const rect = kanbanTable.getBoundingClientRect(); placeholder.style.height = `${header.offsetHeight}px`; header.style.width = `${rect.width}px`; header.style.left = `${rect.left}px`; } else { if (header.classList.contains('is-sticky')) { header.classList.remove('is-sticky'); header.style.width = ''; header.style.left = ''; placeholder.style.display = 'none'; } } } window.addEventListener('scroll', handleStickyHeader); window.addEventListener('resize', handleStickyHeader); const exportToPDF = async () => { const contentToPrint = document.querySelector('.kanban-board'); const originalButtonText = exportPdfButton.querySelector('span').textContent; exportPdfButton.disabled = true; exportPdfButton.querySelector('span').textContent = 'Exportando...'; document.querySelectorAll('.kanban-row').forEach(row => { const clientCell = row.querySelector('.cell-client'); const osInput = row.querySelector('.os-number-input'); const clientInput = row.querySelector('.client-name-input'); if (clientCell && osInput && clientInput) { const tempDiv = document.createElement('div'); tempDiv.className = 'pdf-client-info'; tempDiv.innerHTML = `<span class="pdf-os">${osInput.value}</span><span class="pdf-client">${clientInput.value}</span>`; clientCell.appendChild(tempDiv); } row.querySelectorAll('.status-control').forEach(control => { const dateInput = control.querySelector('.status-date-input'); if (dateInput && dateInput.value) { const tempSpan = document.createElement('span'); tempSpan.className = 'pdf-date-text'; tempSpan.textContent = dateInput.value; control.insertBefore(tempSpan, dateInput); } }); }); document.body.classList.add('print-mode'); try { const canvas = await html2canvas(contentToPrint, { scale: 2, useCORS: true, logging: false }); const pdf = new jspdf.jsPDF('p', 'mm', 'a4'); const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = pdf.internal.pageSize.getHeight(); const canvasAspectRatio = canvas.height / canvas.width; let finalPdfWidth = pdfWidth - 20; let finalPdfHeight = finalPdfWidth * canvasAspectRatio; let position = 0; let heightLeft = finalPdfHeight; pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); while (heightLeft > 0) { position -= (pdfHeight - 20); pdf.addPage(); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); } pdf.save('quadro-kanban.pdf'); } catch (error) { console.error("Erro ao gerar o PDF:", error); alert("Ocorreu um erro ao gerar o PDF."); } finally { document.body.classList.remove('print-mode'); document.querySelectorAll('.pdf-client-info').forEach(div => div.remove()); document.querySelectorAll('.pdf-date-text').forEach(span => span.remove()); exportPdfButton.disabled = false; exportPdfButton.querySelector('span').textContent = originalButtonText; } }; exportPdfButton.addEventListener('click', exportToPDF);
+let currentSearchTerm = ''; let currentMatchingIndices = []; let searchResultPointer = -1; const clearSearchState = () => { currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1; searchCounter.textContent = ''; document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); }; const handleSearch = () => { const newSearchTerm = searchInput.value.toLowerCase().trim(); if (!newSearchTerm) { clearSearchState(); return; } if (newSearchTerm !== currentSearchTerm) { currentSearchTerm = newSearchTerm; currentMatchingIndices = tasks.reduce((acc, task, index) => { if ((task.clientName || '').toLowerCase().includes(currentSearchTerm) || (task.osNumber || '').toLowerCase().includes(currentSearchTerm)) { acc.push(index); } return acc; }, []); searchResultPointer = -1; } if (currentMatchingIndices.length === 0) { searchCounter.textContent = '0/0'; alert('Nenhum item encontrado.'); return; } searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length; const taskIndexToShow = currentMatchingIndices[searchResultPointer]; const foundTask = tasks[taskIndexToShow]; const foundRow = document.getElementById(foundTask.id); if (foundRow) { document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); foundRow.classList.add('highlight'); searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`; } }; function handleStickyHeader() { const header = document.querySelector('.kanban-header'); const placeholder = document.querySelector('.header-placeholder'); const kanbanTable = document.querySelector('.kanban-table'); if (!header || !placeholder || !kanbanTable) return; const scrollTriggerPoint = kanbanTable.offsetTop; if (window.pageYOffset > scrollTriggerPoint) { if (!header.classList.contains('is-sticky')) { header.classList.add('is-sticky'); placeholder.style.display = 'block'; } const rect = kanbanTable.getBoundingClientRect(); placeholder.style.height = `${header.offsetHeight}px`; header.style.width = `${rect.width}px`; header.style.left = `${rect.left}px`; } else { if (header.classList.contains('is-sticky')) { header.classList.remove('is-sticky'); header.style.width = ''; header.style.left = ''; placeholder.style.display = 'none'; } } } const exportToPDF = async () => { const contentToPrint = document.querySelector('.kanban-board'); const originalButtonText = exportPdfButton.querySelector('span').textContent; exportPdfButton.disabled = true; exportPdfButton.querySelector('span').textContent = 'Exportando...'; document.querySelectorAll('.kanban-row').forEach(row => { const clientCell = row.querySelector('.cell-client'); const osInput = row.querySelector('.os-number-input'); const clientInput = row.querySelector('.client-name-input'); if (clientCell && osInput && clientInput) { const tempDiv = document.createElement('div'); tempDiv.className = 'pdf-client-info'; tempDiv.innerHTML = `<span class="pdf-os">${osInput.value}</span><span class="pdf-client">${clientInput.value}</span>`; clientCell.appendChild(tempDiv); } row.querySelectorAll('.status-control').forEach(control => { const dateInput = control.querySelector('.status-date-input'); if (dateInput && dateInput.value) { const tempSpan = document.createElement('span'); tempSpan.className = 'pdf-date-text'; tempSpan.textContent = dateInput.value; control.insertBefore(tempSpan, dateInput); } }); }); document.body.classList.add('print-mode'); try { const { jsPDF } = window.jspdf; const canvas = await html2canvas(contentToPrint, { scale: 2, useCORS: true, logging: false }); const pdf = new jsPDF('l', 'mm', 'a4'); const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = pdf.internal.pageSize.getHeight(); const canvasAspectRatio = canvas.width / canvas.height; let finalPdfHeight = pdfHeight - 20; let finalPdfWidth = finalPdfHeight / canvasAspectRatio; if (finalPdfWidth > pdfWidth - 20) { finalPdfWidth = pdfWidth - 20; finalPdfHeight = finalPdfWidth * canvasAspectRatio; } let position = 0; let heightLeft = canvas.height * (finalPdfWidth / canvas.width); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); while (heightLeft > 0) { position -= (pdfHeight - 20); pdf.addPage(); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position + 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); } pdf.save('quadro-kanban.pdf'); } catch (error) { console.error("Erro ao gerar o PDF:", error); alert("Ocorreu um erro ao gerar o PDF."); } finally { document.body.classList.remove('print-mode'); document.querySelectorAll('.pdf-client-info, .pdf-date-text').forEach(el => el.remove()); exportPdfButton.disabled = false; exportPdfButton.querySelector('span').textContent = originalButtonText; } };
