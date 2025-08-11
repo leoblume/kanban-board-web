@@ -135,8 +135,36 @@ h1 { font-size: 13px; font-weight: 600; margin: 0; flex-grow: 1; }
 .schedule-day-header { font-size: 12px; font-weight: 600; color: var(--text-muted); text-align: center; padding: 6px 4px; border-bottom: 1px solid var(--border-color); background-color: #fff; border-radius: 6px 6px 0 0; }
 .drop-zone { height: 140px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 4px; transition: background-color 0.2s; }
 .drop-zone.drag-over { background-color: var(--hover-color); }
-.schedule-item { display: flex; align-items: flex-start; justify-content: space-between; font-size: 11px; padding: 4px 2px 4px 6px; background-color: #fff; border: 1px solid #dee2e6; border-left: 3px solid var(--primary-color); border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); gap: 4px; }
-.schedule-item-text { text-align: left; word-break: break-word; flex-grow: 1; }
+
+/* --- INÍCIO DOS AJUSTES SOLICITADOS PARA O PAINEL SEMANAL --- */
+
+.schedule-item { 
+    display: flex; 
+    align-items: center; /* Alterado de flex-start para center */
+    justify-content: space-between; 
+    font-size: 11px; 
+    padding: 3px 4px; /* Reduzido o padding vertical */
+    background-color: #fff; 
+    border: 1px solid #dee2e6; 
+    border-left: 3px solid var(--primary-color); 
+    border-radius: 4px; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+    gap: 4px; 
+}
+
+.schedule-item-text { 
+    text-align: left; 
+    word-break: break-word; 
+    flex-grow: 1; 
+    /* Novas regras para formatação em linha única */
+    font-size: 10px;         /* Reduz a fonte */
+    white-space: nowrap;     /* Impede a quebra de linha */
+    overflow: hidden;        /* Esconde o texto que transborda */
+    text-overflow: ellipsis; /* Adiciona "..." ao final */
+}
+
+/* --- FIM DOS AJUSTES --- */
+
 .delete-schedule-item-btn { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 16px; height: 16px; border: none; background: transparent; color: #adb5bd; cursor: pointer; border-radius: 50%; font-size: 16px; line-height: 1; padding: 0; }
 .delete-schedule-item-btn:hover { color: var(--text-color); background-color: #e9ecef; }
 @media (max-width: 1280px) { .schedule-week { max-width: 500px; } }
