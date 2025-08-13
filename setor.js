@@ -18,7 +18,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const setorId = urlParams.get("setor");
 const setorNome = urlParams.get("nome");
 
-document.getElementById("setor-title").textContent = `Tarefas do setor: ${setorNome}`;
+document.getElementById("setor-title").textContent = `Tarefas do Setor: ${setorNome}`;
 const container = document.getElementById("tarefas-do-setor");
 
 function hojeFormatado() {
@@ -41,42 +41,40 @@ function healStatuses(statuses = []) {
   });
 }
 
+// --- FUNÇÃO MODIFICADA PARA CRIAR UMA LINHA DA LISTA ---
 function createTarefaCard(task, status) {
-  const card = document.createElement("div");
-  card.className = "sector-task-card";
+  const item = document.createElement("div");
+  item.className = "sector-task-item"; // Nova classe para o item da lista
 
   // Usa a data do status, se não houver, usa a data de hoje para exibição.
   const dataExec = status.date || hojeFormatado();
 
-  card.innerHTML = `
+  item.innerHTML = `
     <div class="sector-task-os">${task.osNumber || "OS?"}</div>
     <div class="sector-task-client">${task.clientName || "Cliente?"}</div>
-    <div class="sector-task-execution-date">Exec.: ${dataExec}</div>
+    <div class="sector-task-execution-date">${dataExec}</div>
     <div class="sector-task-action">
-      <button class="status-button ${status.state}" title="Marcar como feito" data-id="${task.id}" data-status="${status.id}"></button>
+      <button class="status-button ${status.state}" title="Alterar Status" data-id="${task.id}" data-status="${status.id}"></button>
     </div>
   `;
 
-  return card;
+  return item;
 }
 
-// --- NOVO: Função para converter a data "DD/MM" para um objeto Date ---
-// Isso é essencial para a ordenação correta.
+
 function parseDate(dateString) {
-  // Se a data não existir, retorna uma data muito no futuro
-  // para que esses itens fiquem no final da lista.
   if (!dateString) {
     return new Date('9999-12-31');
   }
   const [day, month] = dateString.split('/').map(Number);
-  // Os meses em JavaScript são baseados em 0 (janeiro = 0)
   return new Date(new Date().getFullYear(), month - 1, day);
 }
 
 onSnapshot(tasksCollection, (snapshot) => {
-  container.innerHTML = "";
+  // Limpa apenas as tarefas, mantendo o cabeçalho intacto
+  const items = container.querySelectorAll('.sector-task-item');
+  items.forEach(item => item.remove());
   
-  // --- MUDANÇA 1: Criar um array temporário para armazenar as tarefas a serem exibidas ---
   const tarefasParaExibir = [];
 
   snapshot.docs.forEach(docSnap => {
@@ -86,23 +84,23 @@ onSnapshot(tasksCollection, (snapshot) => {
 
     if (!currentStatus) return;
 
+    // A lógica de visualização permanece a mesma
     const isAguardando = currentStatus.state === "state-in-progress";
     const isSemStatus = currentStatus.state === "state-pending";
 
     if (isAguardando || isSemStatus) {
-      // Em vez de renderizar, adiciona a tarefa e seu status ao nosso array
       tarefasParaExibir.push({ task, status: currentStatus });
     }
   });
 
-  // --- MUDANÇA 2: Ordenar o array de tarefas ---
+  // A lógica de ordenação permanece a mesma
   tarefasParaExibir.sort((a, b) => {
     const dateA = parseDate(a.status.date);
     const dateB = parseDate(b.status.date);
-    return dateA - dateB; // Ordena da data mais antiga para a mais nova
+    return dateA - dateB; 
   });
 
-  // --- MUDANÇA 3: Renderizar os cards a partir do array já ordenado ---
+  // Renderiza as linhas da lista já ordenadas
   tarefasParaExibir.forEach(item => {
     const card = createTarefaCard(item.task, item.status);
     container.appendChild(card);
@@ -122,13 +120,16 @@ container.addEventListener("click", async (event) => {
 
   const data = snap.data();
   const statuses = healStatuses(data.statuses);
-
+  
+  // --- LÓGICA DE ALTERAÇÃO DE STATUS ---
+  // A ação agora é marcar como "feito" (state-done)
   const updatedStatuses = statuses.map(s => {
     if (s.id === statusId) {
+      // Se já estiver "em andamento" ou "pendente", marca como "feito"
       return {
         ...s,
         state: "state-done",
-        date: s.date || hojeFormatado()
+        date: s.date || hojeFormatado() // Garante que a data seja preenchida ao concluir
       };
     }
     return s;
