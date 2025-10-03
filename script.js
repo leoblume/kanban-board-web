@@ -102,21 +102,8 @@ function renderScheduleItem(os, client, sector = 'impressao') {
     }
     const formattedText = `${os} ${firstWord}`.trim();
     
-    // Definir ícones monocromáticos para cada setor
-    const sectorIcons = {
-        impressao: '⬛',
-        acabamento: '⬛',
-        corte: '⬛',
-        serralheria: '⬛',
-        instalacao: '⬛'
-    };
-    
-    const icon = sectorIcons[sector] || '⬛';
-    
     item.innerHTML = `
-        <button class="schedule-sector-button sector-${sector}" title="Setor: ${sector}">
-            <span class="sector-icon">${icon}</span>
-        </button>
+        <button class="schedule-sector-button sector-${sector}" title="Setor: ${sector}"></button>
         <span class="schedule-item-text" title="${os} ${client}">${formattedText}</span>
         <button class="delete-schedule-item-btn" title="Excluir">×</button>
     `;
@@ -161,64 +148,96 @@ weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); co
 
 weeklySchedulePanel.addEventListener('click', async e => { 
     if (e.target.classList.contains('delete-schedule-item-btn')) { 
+        e.preventDefault();
+        e.stopPropagation();
+        
         const item = e.target.closest('.schedule-item'); 
         const zone = e.target.closest('.drop-zone'); 
+        
         if (item && zone) { 
-            const osNumber = item.dataset.os;
-            const clientName = item.dataset.client;
-            const sector = item.dataset.sector;
+            const osNumber = item.dataset.os || '';
+            const clientName = item.dataset.client || '';
+            const sector = item.dataset.sector || '';
             const dayId = zone.id; 
+            
+            console.log('Tentando excluir:', { osNumber, clientName, sector, dayId });
+            
             const scheduleDocRef = doc(db, "schedule", dayId); 
             
             try { 
-                // Buscar todas as tasks do dia
                 const docSnap = await getDoc(scheduleDocRef);
+                
                 if (docSnap.exists()) {
                     const allTasks = docSnap.data().tasks || [];
-                    // Filtrar removendo a task específica
-                    const updatedTasks = allTasks.filter(task => 
-                        !(task.osNumber === osNumber && 
-                          task.clientName === clientName && 
-                          task.sector === sector)
-                    );
+                    console.log('Tasks antes da exclusão:', allTasks);
+                    
+                    // Filtrar removendo a task específica - comparação mais robusta
+                    const updatedTasks = allTasks.filter(task => {
+                        const taskOs = (task.osNumber || '').trim();
+                        const taskClient = (task.clientName || '').trim();
+                        const taskSector = (task.sector || '').trim();
+                        
+                        const itemOs = osNumber.trim();
+                        const itemClient = clientName.trim();
+                        const itemSector = sector.trim();
+                        
+                        // Retornar true para manter, false para remover
+                        return !(taskOs === itemOs && taskClient === itemClient && taskSector === itemSector);
+                    });
+                    
+                    console.log('Tasks após filtro:', updatedTasks);
+                    
                     // Atualizar o documento com a lista filtrada
                     await updateDoc(scheduleDocRef, { tasks: updatedTasks });
+                    console.log('Exclusão realizada com sucesso');
+                } else {
+                    console.log('Documento não existe');
                 }
             } catch (error) { 
                 console.error("Erro ao excluir da programação:", error); 
             } 
         } 
     } else if (e.target.closest('.schedule-sector-button')) {
-        // Permitir troca de setor clicando no botão
+        e.preventDefault();
+        e.stopPropagation();
+        
         const button = e.target.closest('.schedule-sector-button');
         const item = button.closest('.schedule-item');
         const zone = item.closest('.drop-zone');
+        
         if (item && zone) {
-            const currentSector = item.dataset.sector;
+            const currentSector = item.dataset.sector || '';
             const sectors = ['impressao', 'acabamento', 'corte', 'serralheria', 'instalacao'];
             const currentIndex = sectors.indexOf(currentSector);
             const newSector = sectors[(currentIndex + 1) % sectors.length];
             
-            const osNumber = item.dataset.os;
-            const clientName = item.dataset.client;
+            const osNumber = item.dataset.os || '';
+            const clientName = item.dataset.client || '';
             const dayId = zone.id;
             const scheduleDocRef = doc(db, "schedule", dayId);
             
             try {
-                // Buscar todas as tasks do dia
                 const docSnap = await getDoc(scheduleDocRef);
+                
                 if (docSnap.exists()) {
                     const allTasks = docSnap.data().tasks || [];
+                    
                     // Atualizar a task específica
                     const updatedTasks = allTasks.map(task => {
-                        if (task.osNumber === osNumber && 
-                            task.clientName === clientName && 
-                            task.sector === currentSector) {
+                        const taskOs = (task.osNumber || '').trim();
+                        const taskClient = (task.clientName || '').trim();
+                        const taskSector = (task.sector || '').trim();
+                        
+                        const itemOs = osNumber.trim();
+                        const itemClient = clientName.trim();
+                        const itemSector = currentSector.trim();
+                        
+                        if (taskOs === itemOs && taskClient === itemClient && taskSector === itemSector) {
                             return { ...task, sector: newSector };
                         }
                         return task;
                     });
-                    // Atualizar o documento
+                    
                     await updateDoc(scheduleDocRef, { tasks: updatedTasks });
                 }
             } catch (error) {
