@@ -54,10 +54,4 @@ const renderAllTasks = (tasksToRender) => {
                 <div class="cell">
                     <div class="status-control">
                         <button class="status-button ${s.state}" data-status-id="${s.id}"></button>
-                        <input type="text" class="status-date-input" placeholder="dd/mm" value="${s.date || ''}" data-status-id="${s.id}">
-                    </div>
-                </div>
-            `).join('')}
-            <div class="cell cell-actions">
-                <button class="action-button calendar-button" title="Adicionar à Agenda">
-                    <svg xmlns="http://www.w3.org/2000/svg" width
+                        <input type="text" class="status-date-input" placeholder="dd/mm" value="${s.date || ''}" data-status-id
