@@ -43,6 +43,7 @@ const renderAllTasks = (tasksToRender) => {
         rowElement.className = 'kanban-row';
         rowElement.draggable = true; // Mantemos draggable para arrastar para a programação semanal
         rowElement.id = task.id;
+        
         rowElement.innerHTML = `
             <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
@@ -53,4 +54,10 @@ const renderAllTasks = (tasksToRender) => {
                 <div class="cell">
                     <div class="status-control">
                         <button class="status-button ${s.state}" data-status-id="${s.id}"></button>
-                        <input type="text" class="status-date-input" placeholder="dd/mm" value="${s.date || ''}" data
+                        <input type="text" class="status-date-input" placeholder="dd/mm" value="${s.date || ''}" data-status-id="${s.id}">
+                    </div>
+                </div>
+            `).join('')}
+            <div class="cell cell-actions">
+                <button class="action-button calendar-button" title="Adicionar à Agenda">
+                    <svg xmlns="http://www.w3.org/2000/svg" width
