@@ -41,10 +41,12 @@ const renderAllTasks = (tasksToRender) => {
     tasksToRender.forEach(task => {
         const rowElement = document.createElement('div');
         rowElement.className = 'kanban-row';
+        // A propriedade draggable agora será aplicada apenas se for para a programação semanal
+        // Mas para simplificar, vamos deixar como true e ajustar o dragstart/end/over
         rowElement.draggable = true; 
         rowElement.id = task.id;
         rowElement.innerHTML = `
-            <div class="cell cell-drag-handle">≡</div>
+            <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
                 <input type="text" class="os-number-input" placeholder="Nº OS" value="${task.osNumber || ''}">
                 <input type="text" class="client-name-input" placeholder="Nome do Cliente" value="${task.clientName || ''}">
@@ -77,175 +79,58 @@ kanbanBody.addEventListener('click', async (event) => { const button = event.tar
 kanbanBody.addEventListener('change', async (event) => { const input = event.target; const row = input.closest('.kanban-row'); if (!row || !input.matches('input[type="text"]')) return; const docId = row.id; const docRef = doc(db, "tasks", docId); try { let updateData = {}; if (input.matches('.client-name-input')) { updateData.clientName = input.value; } else if (input.matches('.os-number-input')) { updateData.osNumber = input.value; } else if (input.matches('.status-date-input')) { const statusId = input.dataset.statusId; const docSnap = await getDoc(docRef); if (!docSnap.exists()) return; const completeStatuses = healStatuses(docSnap.data().statuses); const newStatuses = completeStatuses.map(s => (s.id === statusId) ? { ...s, date: input.value } : s); updateData.statuses = newStatuses; if (statusId === 'entrega') { updateData.deliveryDate = convertDateToSortable(input.value); } } await updateDoc(docRef, updateData); } catch (error) { console.error(`Erro ao salvar alteração no campo para a tarefa ${docId}:`, error); } });
 
 // --- DRAG-AND-DROP (KANBAN) ---
+// Modificado para NÃO reordenar a lista principal, apenas permitir arrastar para outros lugares (ex: agenda semanal)
 kanbanBody.addEventListener('dragstart', (e) => { 
     const row = e.target.closest('.kanban-row');
     if (row) {
+        // Não adicione a classe 'dragging' que é usada para a reordenação visual da lista principal
+        // row.classList.add('dragging'); 
         const osNumber = row.querySelector('.os-number-input').value;
         const clientName = row.querySelector('.client-name-input').value;
         e.dataTransfer.setData('application/json', JSON.stringify({ osNumber, clientName }));
-        e.dataTransfer.effectAllowed = 'copyMove';
+        e.dataTransfer.effectAllowed = 'copyMove'; // Permitir cópia ou movimento para a agenda
     }
 });
 
+// Removemos os listeners dragend e dragover do kanbanBody para desativar a reordenação da lista principal
+// kanbanBody.addEventListener('dragend', async (e) => { ... });
+// kanbanBody.addEventListener('dragover', (e) => { ... });
+// function getDragAfterElement(container, y) { ... } // Esta função não é mais necessária para o kanbanBody
+
 // --- LÓGICA DA PROGRAMAÇÃO SEMANAL (AJUSTADA) ---
-function renderScheduleItem(os, client, sector = 'impressao') {
+function renderScheduleItem(os, client) {
     const item = document.createElement('div');
     item.className = 'schedule-item';
     item.dataset.os = os;
     item.dataset.client = client;
-    item.dataset.sector = sector;
-    
     const clientName = client || '';
     let firstWord = clientName.split(' ')[0];
     if (firstWord.length > 8) {
         firstWord = firstWord.substring(0, 8);
     }
     const formattedText = `${os} ${firstWord}`.trim();
-    
     item.innerHTML = `
-        <button class="schedule-sector-button sector-${sector}" title="Setor: ${sector}"></button>
         <span class="schedule-item-text" title="${os} ${client}">${formattedText}</span>
         <button class="delete-schedule-item-btn" title="Excluir">×</button>
     `;
     return item;
 }
-
-onSnapshot(scheduleCollection, (snapshot) => { document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); snapshot.forEach(doc => { const dayId = doc.id; const tasks = doc.data().tasks || []; const zone = document.getElementById(dayId); if (zone) { tasks.forEach(task => { const sector = task.sector || 'impressao'; zone.appendChild(renderScheduleItem(task.osNumber, task.clientName, sector)); }); } }); });
-
+onSnapshot(scheduleCollection, (snapshot) => { document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); snapshot.forEach(doc => { const dayId = doc.id; const tasks = doc.data().tasks || []; const zone = document.getElementById(dayId); if (zone) { tasks.forEach(task => { zone.appendChild(renderScheduleItem(task.osNumber, task.clientName)); }); } }); });
 weeklySchedulePanel.addEventListener('dragover', e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.add('drag-over'); });
-
 weeklySchedulePanel.addEventListener('dragleave', e => { const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.remove('drag-over'); });
-
 weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) { dropZone.classList.remove('drag-over'); try { const taskData = JSON.parse(e.dataTransfer.getData('application/json')); 
+            // Certifique-se de que os dados foram transferidos com sucesso e não são vazios
             if (taskData && taskData.osNumber && taskData.clientName) { 
                 const dayId = dropZone.id;
                 const scheduleDocRef = doc(db, "schedule", dayId);
-                
-                // Determinar o setor baseado na última etapa concluída
-                let sector = 'impressao';
-                const task = tasks.find(t => t.osNumber === taskData.osNumber);
-                if (task && task.statuses) {
-                    const lastDone = [...task.statuses].reverse().find(s => s.state === 'state-done');
-                    if (lastDone) {
-                        const sectorMap = {
-                            'impressao': 'impressao',
-                            'acabamento': 'acabamento',
-                            'corte': 'corte',
-                            'faturamento': 'serralheria',
-                            'instalacao': 'instalacao'
-                        };
-                        sector = sectorMap[lastDone.id] || 'impressao';
-                    }
-                }
-                
-                await setDoc(scheduleDocRef, { tasks: arrayUnion({ ...taskData, sector }) }, { merge: true });
+                await setDoc(scheduleDocRef, { tasks: arrayUnion(taskData) }, { merge: true });
             }
         } catch (error) { 
             console.error("Erro ao salvar na programação:", error); 
         } 
     } 
 });
-
-weeklySchedulePanel.addEventListener('click', async e => { 
-    if (e.target.classList.contains('delete-schedule-item-btn')) { 
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const item = e.target.closest('.schedule-item'); 
-        const zone = e.target.closest('.drop-zone'); 
-        
-        if (item && zone) { 
-            const osNumber = item.dataset.os || '';
-            const clientName = item.dataset.client || '';
-            const sector = item.dataset.sector || '';
-            const dayId = zone.id; 
-            
-            console.log('Tentando excluir:', { osNumber, clientName, sector, dayId });
-            
-            const scheduleDocRef = doc(db, "schedule", dayId); 
-            
-            try { 
-                const docSnap = await getDoc(scheduleDocRef);
-                
-                if (docSnap.exists()) {
-                    const allTasks = docSnap.data().tasks || [];
-                    console.log('Tasks antes da exclusão:', allTasks);
-                    
-                    // Filtrar removendo a task específica - comparação mais robusta
-                    const updatedTasks = allTasks.filter(task => {
-                        const taskOs = (task.osNumber || '').trim();
-                        const taskClient = (task.clientName || '').trim();
-                        const taskSector = (task.sector || '').trim();
-                        
-                        const itemOs = osNumber.trim();
-                        const itemClient = clientName.trim();
-                        const itemSector = sector.trim();
-                        
-                        // Retornar true para manter, false para remover
-                        return !(taskOs === itemOs && taskClient === itemClient && taskSector === itemSector);
-                    });
-                    
-                    console.log('Tasks após filtro:', updatedTasks);
-                    
-                    // Atualizar o documento com a lista filtrada
-                    await updateDoc(scheduleDocRef, { tasks: updatedTasks });
-                    console.log('Exclusão realizada com sucesso');
-                } else {
-                    console.log('Documento não existe');
-                }
-            } catch (error) { 
-                console.error("Erro ao excluir da programação:", error); 
-            } 
-        } 
-    } else if (e.target.closest('.schedule-sector-button')) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const button = e.target.closest('.schedule-sector-button');
-        const item = button.closest('.schedule-item');
-        const zone = item.closest('.drop-zone');
-        
-        if (item && zone) {
-            const currentSector = item.dataset.sector || '';
-            const sectors = ['impressao', 'acabamento', 'corte', 'serralheria', 'instalacao'];
-            const currentIndex = sectors.indexOf(currentSector);
-            const newSector = sectors[(currentIndex + 1) % sectors.length];
-            
-            const osNumber = item.dataset.os || '';
-            const clientName = item.dataset.client || '';
-            const dayId = zone.id;
-            const scheduleDocRef = doc(db, "schedule", dayId);
-            
-            try {
-                const docSnap = await getDoc(scheduleDocRef);
-                
-                if (docSnap.exists()) {
-                    const allTasks = docSnap.data().tasks || [];
-                    
-                    // Atualizar a task específica
-                    const updatedTasks = allTasks.map(task => {
-                        const taskOs = (task.osNumber || '').trim();
-                        const taskClient = (task.clientName || '').trim();
-                        const taskSector = (task.sector || '').trim();
-                        
-                        const itemOs = osNumber.trim();
-                        const itemClient = clientName.trim();
-                        const itemSector = currentSector.trim();
-                        
-                        if (taskOs === itemOs && taskClient === itemClient && taskSector === itemSector) {
-                            return { ...task, sector: newSector };
-                        }
-                        return task;
-                    });
-                    
-                    await updateDoc(scheduleDocRef, { tasks: updatedTasks });
-                }
-            } catch (error) {
-                console.error("Erro ao trocar setor:", error);
-            }
-        }
-    }
-});
+weeklySchedulePanel.addEventListener('click', async e => { if (e.target.classList.contains('delete-schedule-item-btn')) { const item = e.target.closest('.schedule-item'); const zone = e.target.closest('.drop-zone'); if (item && zone) { const taskToRemove = { osNumber: item.dataset.os, clientName: item.dataset.client }; const dayId = zone.id; const scheduleDocRef = doc(db, "schedule", dayId); try { await updateDoc(scheduleDocRef, { tasks: arrayRemove(taskToRemove) }); } catch (error) { console.error("Erro ao excluir da programação:", error); } } } });
 
 // --- LÓGICA PARA MOSTRAR/OCULTAR PAINEL ---
 const setSchedulePanelVisibility = (isHidden) => {
