@@ -41,11 +41,10 @@ const renderAllTasks = (tasksToRender) => {
     tasksToRender.forEach(task => {
         const rowElement = document.createElement('div');
         rowElement.className = 'kanban-row';
-        rowElement.draggable = true;
+        // A propriedade draggable agora será aplicada apenas se for para a programação semanal
+        // Mas para simplificar, vamos deixar como true e ajustar o dragstart/end/over
+        rowElement.draggable = true; 
         rowElement.id = task.id;
-        // **INÍCIO DA CORREÇÃO**
-        // A estrutura HTML gerada aqui foi corrigida para corresponder ao CSS,
-        // garantindo o alinhamento correto das colunas.
         rowElement.innerHTML = `
             <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
@@ -67,7 +66,6 @@ const renderAllTasks = (tasksToRender) => {
                 <button class="action-button delete-button" title="Excluir Linha">×</button>
             </div>
         `;
-        // **FIM DA CORREÇÃO**
         kanbanBody.appendChild(rowElement);
     });
 };
@@ -81,10 +79,23 @@ kanbanBody.addEventListener('click', async (event) => { const button = event.tar
 kanbanBody.addEventListener('change', async (event) => { const input = event.target; const row = input.closest('.kanban-row'); if (!row || !input.matches('input[type="text"]')) return; const docId = row.id; const docRef = doc(db, "tasks", docId); try { let updateData = {}; if (input.matches('.client-name-input')) { updateData.clientName = input.value; } else if (input.matches('.os-number-input')) { updateData.osNumber = input.value; } else if (input.matches('.status-date-input')) { const statusId = input.dataset.statusId; const docSnap = await getDoc(docRef); if (!docSnap.exists()) return; const completeStatuses = healStatuses(docSnap.data().statuses); const newStatuses = completeStatuses.map(s => (s.id === statusId) ? { ...s, date: input.value } : s); updateData.statuses = newStatuses; if (statusId === 'entrega') { updateData.deliveryDate = convertDateToSortable(input.value); } } await updateDoc(docRef, updateData); } catch (error) { console.error(`Erro ao salvar alteração no campo para a tarefa ${docId}:`, error); } });
 
 // --- DRAG-AND-DROP (KANBAN) ---
-kanbanBody.addEventListener('dragstart', (e) => { const row = e.target.closest('.kanban-row'); if (row) { row.classList.add('dragging'); const osNumber = row.querySelector('.os-number-input').value; const clientName = row.querySelector('.client-name-input').value; e.dataTransfer.setData('application/json', JSON.stringify({ osNumber, clientName })); } });
-kanbanBody.addEventListener('dragend', async (e) => { const draggingElement = document.querySelector('.dragging'); if (!draggingElement) return; draggingElement.classList.remove('dragging'); if (e.dataTransfer.dropEffect === 'none') return; const newOrderedIds = Array.from(kanbanBody.querySelectorAll('.kanban-row')).map(r => r.id); const batch = writeBatch(db); newOrderedIds.forEach((id, index) => batch.update(doc(db, "tasks", id), { order: index })); try { await batch.commit(); } catch (error) { console.error("Erro ao salvar a nova ordem:", error); } });
-kanbanBody.addEventListener('dragover', (e) => { e.preventDefault(); const afterElement = getDragAfterElement(kanbanBody, e.clientY); const draggingElement = document.querySelector('.dragging'); if (draggingElement) { if (afterElement == null) { kanbanBody.appendChild(draggingElement); } else { kanbanBody.insertBefore(draggingElement, afterElement); } } });
-function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.kanban-row:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) return { offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element; }
+// Modificado para NÃO reordenar a lista principal, apenas permitir arrastar para outros lugares (ex: agenda semanal)
+kanbanBody.addEventListener('dragstart', (e) => { 
+    const row = e.target.closest('.kanban-row');
+    if (row) {
+        // Não adicione a classe 'dragging' que é usada para a reordenação visual da lista principal
+        // row.classList.add('dragging'); 
+        const osNumber = row.querySelector('.os-number-input').value;
+        const clientName = row.querySelector('.client-name-input').value;
+        e.dataTransfer.setData('application/json', JSON.stringify({ osNumber, clientName }));
+        e.dataTransfer.effectAllowed = 'copyMove'; // Permitir cópia ou movimento para a agenda
+    }
+});
+
+// Removemos os listeners dragend e dragover do kanbanBody para desativar a reordenação da lista principal
+// kanbanBody.addEventListener('dragend', async (e) => { ... });
+// kanbanBody.addEventListener('dragover', (e) => { ... });
+// function getDragAfterElement(container, y) { ... } // Esta função não é mais necessária para o kanbanBody
 
 // --- LÓGICA DA PROGRAMAÇÃO SEMANAL (AJUSTADA) ---
 function renderScheduleItem(os, client) {
@@ -107,7 +118,18 @@ function renderScheduleItem(os, client) {
 onSnapshot(scheduleCollection, (snapshot) => { document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); snapshot.forEach(doc => { const dayId = doc.id; const tasks = doc.data().tasks || []; const zone = document.getElementById(dayId); if (zone) { tasks.forEach(task => { zone.appendChild(renderScheduleItem(task.osNumber, task.clientName)); }); } }); });
 weeklySchedulePanel.addEventListener('dragover', e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.add('drag-over'); });
 weeklySchedulePanel.addEventListener('dragleave', e => { const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.remove('drag-over'); });
-weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) { dropZone.classList.remove('drag-over'); try { const taskData = JSON.parse(e.dataTransfer.getData('application/json')); if (taskData.osNumber && taskData.clientName) { const dayId = dropZone.id; const scheduleDocRef = doc(db, "schedule", dayId); await setDoc(scheduleDocRef, { tasks: arrayUnion(taskData) }, { merge: true }); } } catch (error) { console.error("Erro ao salvar na programação:", error); } } });
+weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) { dropZone.classList.remove('drag-over'); try { const taskData = JSON.parse(e.dataTransfer.getData('application/json')); 
+            // Certifique-se de que os dados foram transferidos com sucesso e não são vazios
+            if (taskData && taskData.osNumber && taskData.clientName) { 
+                const dayId = dropZone.id;
+                const scheduleDocRef = doc(db, "schedule", dayId);
+                await setDoc(scheduleDocRef, { tasks: arrayUnion(taskData) }, { merge: true });
+            }
+        } catch (error) { 
+            console.error("Erro ao salvar na programação:", error); 
+        } 
+    } 
+});
 weeklySchedulePanel.addEventListener('click', async e => { if (e.target.classList.contains('delete-schedule-item-btn')) { const item = e.target.closest('.schedule-item'); const zone = e.target.closest('.drop-zone'); if (item && zone) { const taskToRemove = { osNumber: item.dataset.os, clientName: item.dataset.client }; const dayId = zone.id; const scheduleDocRef = doc(db, "schedule", dayId); try { await updateDoc(scheduleDocRef, { tasks: arrayRemove(taskToRemove) }); } catch (error) { console.error("Erro ao excluir da programação:", error); } } } });
 
 // --- LÓGICA PARA MOSTRAR/OCULTAR PAINEL ---
