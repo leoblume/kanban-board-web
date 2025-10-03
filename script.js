@@ -1,4 +1,41 @@
-// ... (código existente) ...
+// --- START OF FILE script.js ---
+
+// --- Importações do Firebase ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDoc, writeBatch, setDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+// --- Configuração do Firebase ---
+const firebaseConfig = {
+  apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
+  authDomain: "kanban-board-92ce7.firebaseapp.com",
+  projectId: "kanban-board-92ce7",
+  storageBucket: "kanban-board-92ce7.appspot.com",
+  messagingSenderId: "494809291125",
+  appId: "1:494809291125:web:17f9eefa4287d39174db3c"
+};
+
+// --- Inicialização ---
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const tasksCollection = collection(db, "tasks");
+const scheduleCollection = collection(db, "schedule");
+
+// --- Seletores de Elementos DOM ---
+const kanbanBody = document.getElementById('kanban-body');
+const addRowButton = document.getElementById('add-row-button');
+const searchInput = document.getElementById('search-input');
+const searchButton = document.getElementById('search-button');
+const searchCounter = document.getElementById('search-counter');
+const exportPdfButton = document.getElementById('export-pdf-button');
+const weeklySchedulePanel = document.getElementById('weekly-schedule-panel');
+const hideScheduleButton = document.getElementById('hide-schedule-button');
+const showScheduleButton = document.getElementById('show-schedule-button');
+
+// --- LÓGICA CENTRAL ROBUSTA ---
+let tasks = [];
+const canonicalStatuses = [ { id: 'compras', label: 'Compras' }, { id: 'arte', label: 'Arte Final' }, { id: 'impressao', label: 'Impressão' }, { id: 'acabamento', label: 'Acabamento' }, { id: 'corte', label: 'Corte' }, { id: 'faturamento', label: 'Fat.' }, { id: 'instalacao', label: 'Instalação' }, { id: 'entrega', label: 'Entrega' }];
+function healStatuses(statusesArray = []) { return canonicalStatuses.map(canonical => { const existing = statusesArray.find(s => s.id === canonical.id); return { id: canonical.id, label: canonical.label, state: existing?.state || 'state-pending', date: existing?.date || '' }; }); }
+function convertDateToSortable(dateStr) { if (!dateStr || !dateStr.includes('/')) return '9999-12-31'; const parts = dateStr.split('/'); if (parts.length < 2 || isNaN(parseInt(parts[0])) || isNaN(parseInt(parts[1]))) return '9999-12-31'; const day = parts[0].padStart(2, '0'); const month = parts[1].padStart(2, '0'); const year = (parts[2] && parts[2].length === 4) ? parts[2] : new Date().getFullYear(); return `${year}-${month}-${day}`; }
 
 // --- Função de Renderização com a Correção Definitiva ---
 const renderAllTasks = (tasksToRender) => {
@@ -6,6 +43,8 @@ const renderAllTasks = (tasksToRender) => {
     tasksToRender.forEach(task => {
         const rowElement = document.createElement('div');
         rowElement.className = 'kanban-row';
+        // A propriedade draggable agora será aplicada apenas se for para a programação semanal
+        // Mas para simplificar, vamos deixar como true e ajustar o dragstart/end/over
         rowElement.draggable = true; 
         rowElement.id = task.id;
         rowElement.innerHTML = `
@@ -34,39 +73,52 @@ const renderAllTasks = (tasksToRender) => {
 };
 
 
-// ... (código existente) ...
+// --- LISTENERS (KANBAN) ---
+const q = query(tasksCollection, orderBy("deliveryDate", "asc"), orderBy("order", "asc"));
+onSnapshot(q, (snapshot) => { const batch = writeBatch(db); let updatesNeeded = 0; tasks = snapshot.docs.map(documentSnapshot => { const data = documentSnapshot.data(); let needsDBUpdate = false; const updates = {}; let correctedData = { ...data }; const healedStatuses = healStatuses(data.statuses); if (JSON.stringify(data.statuses || []) !== JSON.stringify(healedStatuses)) { updates.statuses = healedStatuses; correctedData.statuses = healedStatuses; needsDBUpdate = true; } if (correctedData.deliveryDate === undefined) { const deliveryDate = convertDateToSortable(healedStatuses.find(s => s.id === 'entrega')?.date); updates.deliveryDate = deliveryDate; correctedData.deliveryDate = deliveryDate; needsDBUpdate = true; } if (correctedData.order === undefined) { updates.order = Date.now(); correctedData.order = updates.order; needsDBUpdate = true; } if (needsDBUpdate) { const docRef = doc(db, "tasks", documentSnapshot.id); batch.update(docRef, updates); updatesNeeded++; } return { id: documentSnapshot.id, ...correctedData }; }); if (updatesNeeded > 0) { batch.commit().catch(err => console.error("Erro ao salvar auto-correção de dados:", err)); } renderAllTasks(tasks); }, (error) => { console.error("ERRO GRAVE AO CARREGAR DADOS:", error); kanbanBody.innerHTML = `<p style="text-align: center; color: red;">Erro ao carregar os dados.</p>`; });
+addRowButton.addEventListener('click', async () => { try { const newOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order || 0)) + 1 : Date.now(); await addDoc(tasksCollection, { clientName: "Novo Cliente", osNumber: "OS: Nova", order: newOrder, deliveryDate: '9999-12-31', statuses: healStatuses([]) }); } catch (error) { console.error("Erro ao adicionar nova tarefa:", error); } });
+kanbanBody.addEventListener('click', async (event) => { const button = event.target.closest('button'); if (!button) return; const row = button.closest('.kanban-row'); if (!row) return; const docId = row.id; const docRef = doc(db, "tasks", docId); try { if (button.classList.contains('delete-button')) { await deleteDoc(docRef); } else if (button.classList.contains('status-button')) { const states = ['state-pending', 'state-in-progress', 'state-done', 'state-blocked']; const statusId = button.dataset.statusId; const docSnap = await getDoc(docRef); if (!docSnap.exists()) return; const completeStatuses = healStatuses(docSnap.data().statuses); const newStatuses = completeStatuses.map(status => (status.id === statusId) ? { ...status, state: states[(states.indexOf(status.state) + 1) % states.length] } : status); await updateDoc(docRef, { statuses: newStatuses }); } else if (button.classList.contains('calendar-button')) { const task = tasks.find(t => t.id === docId); if (task) { const eventTitle = `Entrega: ${task.clientName} (${task.osNumber})`; window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}`, '_blank'); } } } catch (error) { console.error(`Erro na ação do botão para a tarefa ${docId}:`, error); } });
+kanbanBody.addEventListener('change', async (event) => { const input = event.target; const row = input.closest('.kanban-row'); if (!row || !input.matches('input[type="text"]')) return; const docId = row.id; const docRef = doc(db, "tasks", docId); try { let updateData = {}; if (input.matches('.client-name-input')) { updateData.clientName = input.value; } else if (input.matches('.os-number-input')) { updateData.osNumber = input.value; } else if (input.matches('.status-date-input')) { const statusId = input.dataset.statusId; const docSnap = await getDoc(docRef); if (!docSnap.exists()) return; const completeStatuses = healStatuses(docSnap.data().statuses); const newStatuses = completeStatuses.map(s => (s.id === statusId) ? { ...s, date: input.value } : s); updateData.statuses = newStatuses; if (statusId === 'entrega') { updateData.deliveryDate = convertDateToSortable(input.value); } } await updateDoc(docRef, updateData); } catch (error) { console.error(`Erro ao salvar alteração no campo para a tarefa ${docId}:`, error); } });
 
 // --- DRAG-AND-DROP (KANBAN) ---
+// Modificado para NÃO reordenar a lista principal, apenas permitir arrastar para outros lugares (ex: agenda semanal)
 kanbanBody.addEventListener('dragstart', (e) => { 
     const row = e.target.closest('.kanban-row');
     if (row) {
+        // Não adicione a classe 'dragging' que é usada para a reordenação visual da lista principal
+        // row.classList.add('dragging'); 
         const osNumber = row.querySelector('.os-number-input').value;
         const clientName = row.querySelector('.client-name-input').value;
         
-        // Determinar o setor principal para o arrastar
-        // Para simplificar, vamos pegar o status mais avançado que não seja 'pending'
+        // --- Lógica para determinar o setor principal ---
         const task = tasks.find(t => t.id === row.id);
-        let mainSector = 'geral'; // Valor padrão
+        let mainSector = 'geral'; // Valor padrão se não conseguir determinar um setor específico
+
         if (task && task.statuses) {
-            // Encontrar o status mais relevante (ex: o último a ser 'in-progress' ou 'done')
-            const activeStatus = task.statuses.slice().reverse().find(s => s.state === 'state-in-progress' || s.state === 'state-done');
-            if (activeStatus) {
-                mainSector = activeStatus.id; // Usa o ID do status como setor
-            } else {
-                // Se nenhum status estiver ativo/feito, talvez o primeiro pendente ou o de entrega
-                const deliveryStatus = task.statuses.find(s => s.id === 'entrega');
-                if (deliveryStatus && deliveryStatus.date) {
-                    mainSector = 'entrega';
+            // Tenta encontrar o status 'done' ou 'in-progress' mais avançado na ordem canônica
+            // A ordem canônica é: compras, arte, impressao, acabamento, corte, faturamento, instalacao, entrega
+            for (const canonicalStatus of canonicalStatuses) {
+                const taskStatus = task.statuses.find(s => s.id === canonicalStatus.id);
+                if (taskStatus && (taskStatus.state === 'state-in-progress' || taskStatus.state === 'state-done')) {
+                    mainSector = canonicalStatus.id;
                 }
+            }
+            // Se a tarefa já foi entregue, prioriza o setor de entrega
+            const deliveryStatus = task.statuses.find(s => s.id === 'entrega');
+            if (deliveryStatus && deliveryStatus.state === 'state-done') {
+                mainSector = 'entrega';
             }
         }
         
-        e.dataTransfer.setData('application/json', JSON.stringify({ osNumber, clientName, mainSector }));
-        e.dataTransfer.effectAllowed = 'copyMove';
+        e.dataTransfer.setData('application/json', JSON.stringify({ osNumber, clientName, mainSector })); // Inclui mainSector
+        e.dataTransfer.effectAllowed = 'copyMove'; // Permitir cópia ou movimento para a agenda
     }
 });
 
-// ... (código existente) ...
+// Removemos os listeners dragend e dragover do kanbanBody para desativar a reordenação da lista principal
+// kanbanBody.addEventListener('dragend', async (e) => { ... });
+// kanbanBody.addEventListener('dragover', (e) => { ... });
+// function getDragAfterElement(container, y) { ... } // Esta função não é mais necessária para o kanbanBody
 
 // --- LÓGICA DA PROGRAMAÇÃO SEMANAL (AJUSTADA) ---
 // Mapeamento de setores para ícones (SVG)
@@ -103,66 +155,4 @@ function renderScheduleItem(os, client, sector = 'geral') { // Adicionado 'secto
     item.innerHTML = `
         <span class="schedule-item-icon">${icon}</span>
         <span class="schedule-item-text" title="${os} ${client} (${sector})">${formattedText}</span>
-        <button class="delete-schedule-item-btn" title="Excluir">×</button>
-    `;
-    return item;
-}
-
-onSnapshot(scheduleCollection, (snapshot) => { 
-    document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); 
-    snapshot.forEach(doc => { 
-        const dayId = doc.id; 
-        const tasks = doc.data().tasks || []; 
-        const zone = document.getElementById(dayId); 
-        if (zone) { 
-            tasks.forEach(task => { 
-                // Passa o setor para a função de renderização
-                zone.appendChild(renderScheduleItem(task.osNumber, task.clientName, task.mainSector || 'geral')); 
-            }); 
-        } 
-    }); 
-});
-
-// ... (código existente) ...
-
-weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) { dropZone.classList.remove('drag-over'); try { 
-            const taskData = JSON.parse(e.dataTransfer.getData('application/json')); 
-            if (taskData && taskData.osNumber && taskData.clientName) { 
-                const dayId = dropZone.id;
-                const scheduleDocRef = doc(db, "schedule", dayId);
-                
-                // Salva o setor junto com a tarefa na agenda
-                await setDoc(scheduleDocRef, { tasks: arrayUnion({ 
-                    osNumber: taskData.osNumber, 
-                    clientName: taskData.clientName,
-                    mainSector: taskData.mainSector || 'geral' // Salva o setor
-                }) }, { merge: true });
-            }
-        } catch (error) { 
-            console.error("Erro ao salvar na programação:", error); 
-        } 
-    } 
-});
-
-weeklySchedulePanel.addEventListener('click', async e => { 
-    if (e.target.classList.contains('delete-schedule-item-btn')) { 
-        const item = e.target.closest('.schedule-item'); 
-        const zone = e.target.closest('.drop-zone'); 
-        if (item && zone) { 
-            const taskToRemove = { 
-                osNumber: item.dataset.os, 
-                clientName: item.dataset.client,
-                mainSector: item.dataset.sector || 'geral' // Inclui o setor na remoção
-            }; 
-            const dayId = zone.id; 
-            const scheduleDocRef = doc(db, "schedule", dayId); 
-            try { 
-                await updateDoc(scheduleDocRef, { tasks: arrayRemove(taskToRemove) }); 
-            } catch (error) { 
-                console.error("Erro ao excluir da programação:", error); 
-            } 
-        } 
-    } 
-});
-
-// ... (restante do código existente) ...
+        <button class="delete-schedule-
