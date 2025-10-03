@@ -156,10 +156,23 @@ body.schedule-is-hidden #show-schedule-button {
 .drop-zone { height: 140px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 4px; transition: background-color 0.2s; }
 .drop-zone.drag-over { background-color: var(--hover-color); }
 
-.schedule-item { display: flex; align-items: center; justify-content: space-between; padding: 3px 4px; background-color: #fff; border: 1px solid #dee2e6; border-left: 3px solid var(--primary-color); border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); gap: 4px; }
+.schedule-item { display: flex; align-items: center; justify-content: space-between; padding: 3px 4px; background-color: #fff; border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); gap: 4px; }
+.schedule-sector-button { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; border-radius: 4px; cursor: pointer; flex-shrink: 0; transition: all 0.2s; font-size: 12px; padding: 0; }
+.schedule-sector-button:hover { transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+.sector-impressao { background-color: #8B4513; color: white; }
+.sector-acabamento { background-color: #F5DEB3; color: #333; }
+.sector-corte { background-color: #ADFF2F; color: #333; }
+.sector-serralheria { background-color: #FF8C00; color: white; }
+.sector-instalacao { background-color: #9370DB; color: white; }
+.sector-icon { line-height: 1; }
 .schedule-item-text { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; text-align: left; }
 .delete-schedule-item-btn { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 16px; height: 16px; border: none; background: transparent; color: #adb5bd; cursor: pointer; border-radius: 50%; font-size: 16px; line-height: 1; padding: 0; }
 .delete-schedule-item-btn:hover { color: var(--text-color); background-color: #e9ecef; }
+
+.schedule-legend { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; background-color: var(--light-gray); border: 1px solid var(--border-color); border-radius: 6px; font-size: 10px; min-width: 120px; }
+.legend-title { font-weight: 600; color: var(--text-muted); margin-bottom: 2px; font-size: 11px; }
+.legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-color); }
+.legend-color { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
 /* --- FIM DOS AJUSTES DO PAINEL SEMANAL --- */
 
 @media (max-width: 1280px) { .schedule-week { max-width: 700px; } }
