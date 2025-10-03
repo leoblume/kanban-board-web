@@ -41,8 +41,6 @@ const renderAllTasks = (tasksToRender) => {
     tasksToRender.forEach(task => {
         const rowElement = document.createElement('div');
         rowElement.className = 'kanban-row';
-        // A propriedade draggable agora será aplicada apenas se for para a programação semanal
-        // Mas para simplificar, vamos deixar como true e ajustar o dragstart/end/over
         rowElement.draggable = true; 
         rowElement.id = task.id;
         rowElement.innerHTML = `
@@ -79,30 +77,26 @@ kanbanBody.addEventListener('click', async (event) => { const button = event.tar
 kanbanBody.addEventListener('change', async (event) => { const input = event.target; const row = input.closest('.kanban-row'); if (!row || !input.matches('input[type="text"]')) return; const docId = row.id; const docRef = doc(db, "tasks", docId); try { let updateData = {}; if (input.matches('.client-name-input')) { updateData.clientName = input.value; } else if (input.matches('.os-number-input')) { updateData.osNumber = input.value; } else if (input.matches('.status-date-input')) { const statusId = input.dataset.statusId; const docSnap = await getDoc(docRef); if (!docSnap.exists()) return; const completeStatuses = healStatuses(docSnap.data().statuses); const newStatuses = completeStatuses.map(s => (s.id === statusId) ? { ...s, date: input.value } : s); updateData.statuses = newStatuses; if (statusId === 'entrega') { updateData.deliveryDate = convertDateToSortable(input.value); } } await updateDoc(docRef, updateData); } catch (error) { console.error(`Erro ao salvar alteração no campo para a tarefa ${docId}:`, error); } });
 
 // --- DRAG-AND-DROP (KANBAN) ---
-// Modificado para NÃO reordenar a lista principal, apenas permitir arrastar para outros lugares (ex: agenda semanal)
 kanbanBody.addEventListener('dragstart', (e) => { 
     const row = e.target.closest('.kanban-row');
     if (row) {
-        // Não adicione a classe 'dragging' que é usada para a reordenação visual da lista principal
-        // row.classList.add('dragging'); 
         const osNumber = row.querySelector('.os-number-input').value;
         const clientName = row.querySelector('.client-name-input').value;
         e.dataTransfer.setData('application/json', JSON.stringify({ osNumber, clientName }));
-        e.dataTransfer.effectAllowed = 'copyMove'; // Permitir cópia ou movimento para a agenda
+        e.dataTransfer.effectAllowed = 'copyMove'; 
     }
 });
 
-// Removemos os listeners dragend e dragover do kanbanBody para desativar a reordenação da lista principal
-// kanbanBody.addEventListener('dragend', async (e) => { ... });
-// kanbanBody.addEventListener('dragover', (e) => { ... });
-// function getDragAfterElement(container, y) { ... } // Esta função não é mais necessária para o kanbanBody
-
 // --- LÓGICA DA PROGRAMAÇÃO SEMANAL (AJUSTADA) ---
-function renderScheduleItem(os, client) {
-    const item = document.createElement('div');
-    item.className = 'schedule-item';
+// Cores disponíveis para os itens da agenda
+const scheduleColors = ['color-default', 'color-purple', 'color-orange', 'color-lime-green', 'color-brown', 'color-beige'];
+
+function renderScheduleItem(os, client, colorIndex = 0) {
+    const item = document.createElement('button'); // Alterado para botão
+    item.className = `schedule-item ${scheduleColors[colorIndex]}`;
     item.dataset.os = os;
     item.dataset.client = client;
+    item.dataset.colorIndex = colorIndex; // Armazena o índice da cor
     const clientName = client || '';
     let firstWord = clientName.split(' ')[0];
     if (firstWord.length > 8) {
@@ -113,24 +107,96 @@ function renderScheduleItem(os, client) {
         <span class="schedule-item-text" title="${os} ${client}">${formattedText}</span>
         <button class="delete-schedule-item-btn" title="Excluir">×</button>
     `;
+
+    // Adiciona o listener de clique para trocar a cor
+    item.addEventListener('click', async (e) => {
+        // Evita que o clique no botão de exclusão propague e mude a cor
+        if (e.target.classList.contains('delete-schedule-item-btn')) {
+            return;
+        }
+
+        const currentDayId = item.closest('.drop-zone').id;
+        const currentTaskData = { osNumber: item.dataset.os, clientName: item.dataset.client };
+        const oldColorIndex = parseInt(item.dataset.colorIndex);
+        const newColorIndex = (oldColorIndex + 1) % scheduleColors.length;
+
+        try {
+            const scheduleDocRef = doc(db, "schedule", currentDayId);
+            const docSnap = await getDoc(scheduleDocRef);
+
+            if (docSnap.exists()) {
+                const tasksInDay = docSnap.data().tasks || [];
+                const updatedTasks = tasksInDay.map(task => {
+                    if (task.osNumber === currentTaskData.osNumber && task.clientName === currentTaskData.clientName) {
+                        return { ...task, colorIndex: newColorIndex }; // Atualiza o índice da cor
+                    }
+                    return task;
+                });
+                await updateDoc(scheduleDocRef, { tasks: updatedTasks });
+            }
+        } catch (error) {
+            console.error("Erro ao atualizar a cor do item da programação:", error);
+        }
+    });
+
     return item;
 }
-onSnapshot(scheduleCollection, (snapshot) => { document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); snapshot.forEach(doc => { const dayId = doc.id; const tasks = doc.data().tasks || []; const zone = document.getElementById(dayId); if (zone) { tasks.forEach(task => { zone.appendChild(renderScheduleItem(task.osNumber, task.clientName)); }); } }); });
+
+// Modificado para pegar o colorIndex do Firebase
+onSnapshot(scheduleCollection, (snapshot) => { 
+    document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); 
+    snapshot.forEach(doc => { 
+        const dayId = doc.id; 
+        const tasks = doc.data().tasks || []; 
+        const zone = document.getElementById(dayId); 
+        if (zone) { 
+            tasks.forEach(task => { 
+                zone.appendChild(renderScheduleItem(task.osNumber, task.clientName, task.colorIndex || 0)); // Passa colorIndex
+            }); 
+        } 
+    }); 
+});
+
 weeklySchedulePanel.addEventListener('dragover', e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.add('drag-over'); });
 weeklySchedulePanel.addEventListener('dragleave', e => { const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.remove('drag-over'); });
-weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) { dropZone.classList.remove('drag-over'); try { const taskData = JSON.parse(e.dataTransfer.getData('application/json')); 
-            // Certifique-se de que os dados foram transferidos com sucesso e não são vazios
+weeklySchedulePanel.addEventListener('drop', async e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) { dropZone.classList.remove('drag-over'); try { 
+            const taskData = JSON.parse(e.dataTransfer.getData('application/json')); 
             if (taskData && taskData.osNumber && taskData.clientName) { 
                 const dayId = dropZone.id;
+                // Adiciona colorIndex padrão ao adicionar um novo item
+                const taskWithColor = { ...taskData, colorIndex: 0 }; 
                 const scheduleDocRef = doc(db, "schedule", dayId);
-                await setDoc(scheduleDocRef, { tasks: arrayUnion(taskData) }, { merge: true });
+                await setDoc(scheduleDocRef, { tasks: arrayUnion(taskWithColor) }, { merge: true });
             }
         } catch (error) { 
             console.error("Erro ao salvar na programação:", error); 
         } 
     } 
 });
-weeklySchedulePanel.addEventListener('click', async e => { if (e.target.classList.contains('delete-schedule-item-btn')) { const item = e.target.closest('.schedule-item'); const zone = e.target.closest('.drop-zone'); if (item && zone) { const taskToRemove = { osNumber: item.dataset.os, clientName: item.dataset.client }; const dayId = zone.id; const scheduleDocRef = doc(db, "schedule", dayId); try { await updateDoc(scheduleDocRef, { tasks: arrayRemove(taskToRemove) }); } catch (error) { console.error("Erro ao excluir da programação:", error); } } } });
+weeklySchedulePanel.addEventListener('click', async e => { 
+    if (e.target.classList.contains('delete-schedule-item-btn')) { 
+        const item = e.target.closest('.schedule-item'); 
+        const zone = e.target.closest('.drop-zone'); 
+        if (item && zone) { 
+            // Ao remover, precisamos remover o item exato, incluindo o colorIndex se ele existir
+            // Primeiro, vamos buscar o documento para encontrar o item correto com o colorIndex
+            const dayId = zone.id;
+            const scheduleDocRef = doc(db, "schedule", dayId);
+            const docSnap = await getDoc(scheduleDocRef);
+
+            if (docSnap.exists()) {
+                const tasksInDay = docSnap.data().tasks || [];
+                const taskToRemove = tasksInDay.find(task => 
+                    task.osNumber === item.dataset.os && task.clientName === item.dataset.client
+                );
+
+                if (taskToRemove) {
+                    await updateDoc(scheduleDocRef, { tasks: arrayRemove(taskToRemove) }); 
+                }
+            }
+        } 
+    } 
+});
 
 // --- LÓGICA PARA MOSTRAR/OCULTAR PAINEL ---
 const setSchedulePanelVisibility = (isHidden) => {
@@ -151,7 +217,28 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
     searchInput.addEventListener('input', clearSearchState);
     exportPdfButton.addEventListener('click', exportToPDF);
+
+    // Adiciona a legenda no painel semanal ao carregar a página
+    addScheduleLegend();
 });
+
+// Função para adicionar a legenda
+function addScheduleLegend() {
+    if (document.getElementById('schedule-legend')) return; // Evita duplicar
+    
+    const legendDiv = document.createElement('div');
+    legendDiv.id = 'schedule-legend';
+    legendDiv.className = 'schedule-legend';
+    legendDiv.innerHTML = `
+        <span class="legend-item"><span class="legend-color color-purple"></span> Instalação</span>
+        <span class="legend-item"><span class="legend-color color-orange"></span> Serralheria</span>
+        <span class="legend-item"><span class="legend-color color-lime-green"></span> Corte</span>
+        <span class="legend-item"><span class="legend-color color-brown"></span> Impressão</span>
+        <span class="legend-item"><span class="legend-color color-beige"></span> Acabamento</span>
+    `;
+    weeklySchedulePanel.appendChild(legendDiv);
+}
+
 
 // --- PESQUISA, HEADER FIXO, PDF ---
 let currentSearchTerm = ''; let currentMatchingIndices = []; let searchResultPointer = -1; const clearSearchState = () => { currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1; searchCounter.textContent = ''; document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); }; const handleSearch = () => { const newSearchTerm = searchInput.value.toLowerCase().trim(); if (!newSearchTerm) { clearSearchState(); return; } if (newSearchTerm !== currentSearchTerm) { currentSearchTerm = newSearchTerm; currentMatchingIndices = tasks.reduce((acc, task, index) => { if ((task.clientName || '').toLowerCase().includes(currentSearchTerm) || (task.osNumber || '').toLowerCase().includes(currentSearchTerm)) { acc.push(index); } return acc; }, []); searchResultPointer = -1; } if (currentMatchingIndices.length === 0) { searchCounter.textContent = '0/0'; alert('Nenhum item encontrado.'); return; } searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length; const taskIndexToShow = currentMatchingIndices[searchResultPointer]; const foundTask = tasks[taskIndexToShow]; const foundRow = document.getElementById(foundTask.id); if (foundRow) { document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); foundRow.classList.add('highlight'); searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`; } }; function handleStickyHeader() { const header = document.querySelector('.kanban-header'); const placeholder = document.querySelector('.header-placeholder'); const kanbanTable = document.querySelector('.kanban-table'); if (!header || !placeholder || !kanbanTable) return; const scrollTriggerPoint = kanbanTable.offsetTop; if (window.pageYOffset > scrollTriggerPoint) { if (!header.classList.contains('is-sticky')) { header.classList.add('is-sticky'); placeholder.style.display = 'block'; } const rect = kanbanTable.getBoundingClientRect(); placeholder.style.height = `${header.offsetHeight}px`; header.style.width = `${rect.width}px`; header.style.left = `${rect.left}px`; } else { if (header.classList.contains('is-sticky')) { header.classList.remove('is-sticky'); header.style.width = ''; header.style.left = ''; placeholder.style.display = 'none'; } } } const exportToPDF = async () => { const contentToPrint = document.querySelector('.kanban-board'); const originalButtonText = exportPdfButton.querySelector('span').textContent; exportPdfButton.disabled = true; exportPdfButton.querySelector('span').textContent = 'Exportando...'; document.querySelectorAll('.kanban-row').forEach(row => { const clientCell = row.querySelector('.cell-client'); const osInput = row.querySelector('.os-number-input'); const clientInput = row.querySelector('.client-name-input'); if (clientCell && osInput && clientInput) { const tempDiv = document.createElement('div'); tempDiv.className = 'pdf-client-info'; tempDiv.innerHTML = `<span class="pdf-os">${osInput.value}</span><span class="pdf-client">${clientInput.value}</span>`; clientCell.appendChild(tempDiv); } row.querySelectorAll('.status-control').forEach(control => { const dateInput = control.querySelector('.status-date-input'); if (dateInput && dateInput.value) { const tempSpan = document.createElement('span'); tempSpan.className = 'pdf-date-text'; tempSpan.textContent = dateInput.value; control.insertBefore(tempSpan, dateInput); } }); }); document.body.classList.add('print-mode'); try { const { jsPDF } = window.jspdf; const canvas = await html2canvas(contentToPrint, { scale: 2, useCORS: true, logging: false }); const pdf = new jsPDF('l', 'mm', 'a4'); const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = pdf.internal.pageSize.getHeight(); const canvasAspectRatio = canvas.width / canvas.height; let finalPdfHeight = pdfHeight - 20; let finalPdfWidth = finalPdfHeight / canvasAspectRatio; if (finalPdfWidth > pdfWidth - 20) { finalPdfWidth = pdfWidth - 20; finalPdfHeight = finalPdfWidth * canvasAspectRatio; } let position = 0; let heightLeft = canvas.height * (finalPdfWidth / canvas.width); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); while (heightLeft > 0) { position -= (pdfHeight - 20); pdf.addPage(); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position + 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); } pdf.save('quadro-kanban.pdf'); } catch (error) { console.error("Erro ao gerar o PDF:", error); alert("Ocorreu um erro ao gerar o PDF."); } finally { document.body.classList.remove('print-mode'); document.querySelectorAll('.pdf-client-info, .pdf-date-text').forEach(el => el.remove()); exportPdfButton.disabled = false; exportPdfButton.querySelector('span').textContent = originalButtonText; } };
