@@ -166,12 +166,12 @@ body.schedule-is-hidden #show-schedule-button {
 .schedule-legend { display: flex; gap: 12px; padding: 8px 12px; margin-top: 8px; color: var(--text-muted); font-size: 12px; justify-content: center; flex-wrap: wrap; }
 .legend-color { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: middle; box-shadow: 0 1px 2px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.03); }
 
-.legend-arte { background: #b3d9ff; }
-.legend-impressao { background: #ffd8b3; }
-.legend-acabamento { background: #f5e6cc; }
-.legend-corte { background: #d9f2b4; }
-.legend-serralheria { background: #e0c7a0; }
-.legend-instalacao { background: #ffd8b3; }
+.legend-arte { background: #64b5f6; }
+.legend-impressao { background: #ffb74d; }
+.legend-acabamento { background: #ffe082; }
+.legend-corte { background: #aed581; }
+.legend-serralheria { background: #bcaaa4; }
+.legend-instalacao { background: #ff8a65; }
 
 @media (max-width: 1280px) { .schedule-week { max-width: 700px; } }
 @media (max-width: 1024px) { #weekly-schedule-panel { flex-direction: column; align-items: center; } .schedule-week { width: 95%; max-width: 600px; } body { padding-bottom: 280px; } }
