@@ -258,34 +258,48 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
 }
 
 
-/* --- OVERRIDE INJETADO PELO ASSISTENTE: LEGENDA DISCRETA E CORES --- */
+/* --- AJUSTE FINAL DE LEGENDA E CORES COM CONTRASTE --- */
 .schedule-legend {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 4px !important;
-    padding: 6px 10px !important;
-    margin-top: 8px !important;
-    background-color: #fafafa !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 6px !important;
-    max-height: 140px !important;
+    gap: 2px !important;
+    padding: 4px 8px !important;
+    margin-top: 6px !important;
+    background-color: #fdfdfd !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 4px !important;
+    max-height: 110px !important;
     overflow-y: auto !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
     color: var(--text-muted) !important;
 }
-.schedule-legend li { list-style: none; display: flex; align-items: center; gap: 6px; margin: 2px 0; }
-.schedule-legend .legend-color { width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.03); }
+.schedule-legend li {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1.2;
+    margin: 1px 0;
+}
+.schedule-legend .legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    box-shadow: 0 0 1px rgba(0,0,0,0.2);
+}
 
-.legend-arte{ background: #64b5f6 !important; }
-.legend-impressao{ background: #ffb74d !important; }
-.legend-acabamento{ background: #ffe082 !important; }
-.legend-corte{ background: #aed581 !important; }
-.legend-serralheria{ background: #bcaaa4 !important; }
-.legend-instalacao{ background: #ff8a65 !important; }
+.legend-arte { background: #1E88E5 !important; }
+.legend-impressao { background: #FB8C00 !important; }
+.legend-acabamento { background: #FFD54F !important; }
+.legend-corte { background: #9CCC65 !important; }
+.legend-serralheria { background: #A1887F !important; }
+.legend-instalacao { background: #F4511E !important; }
 
-/* Ajustes adicionais para itens de programação */
-.schedule-item[data-color-set="true"] { color: #212529 !important; font-weight: 500 !important; }
-.schedule-item { transition: all 0.15s ease-in-out !important; }
-.schedule-item:hover { filter: brightness(0.96) !important; }
-/* --- FIM OVERRIDE --- */
+.schedule-item[data-color-id="arte"] { background-color: #E3F2FD !important; border-left-color: #1E88E5 !important; }
+.schedule-item[data-color-id="impressao"] { background-color: #FFF3E0 !important; border-left-color: #FB8C00 !important; }
+.schedule-item[data-color-id="acabamento"] { background-color: #FFF8E1 !important; border-left-color: #FFD54F !important; }
+.schedule-item[data-color-id="corte"] { background-color: #F1F8E9 !important; border-left-color: #9CCC65 !important; }
+.schedule-item[data-color-id="serralheria"] { background-color: #EFEBE9 !important; border-left-color: #A1887F !important; }
+.schedule-item[data-color-id="instalacao"] { background-color: #FBE9E7 !important; border-left-color: #F4511E !important; }
+/* --- FIM DO AJUSTE --- */

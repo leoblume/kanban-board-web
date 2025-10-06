@@ -91,12 +91,12 @@ kanbanBody.addEventListener('dragstart', (e) => {
 // Palette de cores (ordem de ciclo)
 const COLOR_CYCLE = [
   { id: '', label: 'Nenhuma', color: '' },
-  { id: 'arte', label: 'Arte Final', color: '#64b5f6' },
-  { id: 'impressao', label: 'Impressão', color: '#ffb74d' },
-  { id: 'acabamento', label: 'Acabamento', color: '#ffe082' },
-  { id: 'corte', label: 'Corte', color: '#aed581' },
-  { id: 'serralheria', label: 'Serralheria', color: '#bcaaa4' },
-  { id: 'instalacao', label: 'Instalação', color: '#ff8a65' }
+  { id: 'arte', label: 'Arte Final', color: '#1E88E5' },
+  { id: 'impressao', label: 'Impressão', color: '#FB8C00' },
+  { id: 'acabamento', label: 'Acabamento', color: '#FFD54F' },
+  { id: 'corte', label: 'Corte', color: '#9CCC65' },
+  { id: 'serralheria', label: 'Serralheria', color: '#A1887F' },
+  { id: 'instalacao', label: 'Instalação', color: '#F4511E' }
 ];
 
 function renderScheduleItem(task) {
