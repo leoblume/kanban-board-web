@@ -97,7 +97,6 @@ kanbanBody.addEventListener('dragstart', (e) => {
 // kanbanBody.addEventListener('dragover', (e) => { ... });
 // function getDragAfterElement(container, y) { ... } // Esta função não é mais necessária para o kanbanBody
 
-/**
 // --- LÓGICA DA PROGRAMAÇÃO SEMANAL (AJUSTADA) ---
 function renderScheduleItem(os, client) {
     const item = document.createElement('div');
@@ -152,113 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
     searchInput.addEventListener('input', clearSearchState);
     exportPdfButton.addEventListener('click', exportToPDF);
-});
-**/
-// --- LÓGICA DA PROGRAMAÇÃO SEMANAL (AJUSTADA COM CORES) ---
-function renderScheduleItem(os, client, sector) {
-    const item = document.createElement('div');
-    item.className = 'schedule-item';
-    item.dataset.os = os;
-    item.dataset.client = client;
-    
-    // Adiciona o atributo data-sector para aplicar as cores
-    if (sector) {
-        item.dataset.sector = sector;
-    }
-    
-    const clientName = client || '';
-    let firstWord = clientName.split(' ')[0];
-    if (firstWord.length > 8) {
-        firstWord = firstWord.substring(0, 8);
-    }
-    const formattedText = `${os} ${firstWord}`.trim();
-    item.innerHTML = `
-        <span class="schedule-item-text" title="${os} ${client}">${formattedText}</span>
-        <button class="delete-schedule-item-btn" title="Excluir">×</button>
-    `;
-    return item;
-}
-
-onSnapshot(scheduleCollection, (snapshot) => { 
-    document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = ''); 
-    snapshot.forEach(doc => { 
-        const dayId = doc.id; 
-        const tasksData = doc.data().tasks || []; 
-        const zone = document.getElementById(dayId); 
-        if (zone) { 
-            tasksData.forEach(task => { 
-                zone.appendChild(renderScheduleItem(task.osNumber, task.clientName, task.sector)); 
-            }); 
-        } 
-    }); 
-});
-
-weeklySchedulePanel.addEventListener('dragover', e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.add('drag-over'); });
-
-weeklySchedulePanel.addEventListener('dragleave', e => { const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.remove('drag-over'); });
-
-weeklySchedulePanel.addEventListener('drop', async e => { 
-    e.preventDefault(); 
-    const dropZone = e.target.closest('.drop-zone'); 
-    if (dropZone) { 
-        dropZone.classList.remove('drag-over'); 
-        try { 
-            const taskData = JSON.parse(e.dataTransfer.getData('application/json')); 
-            if (taskData && taskData.osNumber && taskData.clientName) { 
-                const dayId = dropZone.id;
-                
-                // Busca a tarefa completa para obter o setor predominante
-                const task = tasks.find(t => t.osNumber === taskData.osNumber);
-                let predominantSector = null;
-                
-                if (task && task.statuses) {
-                    // Verifica qual setor está "em andamento" primeiro
-                    const inProgressSector = task.statuses.find(s => s.state === 'state-in-progress');
-                    if (inProgressSector) {
-                        predominantSector = inProgressSector.id;
-                    } else {
-                        // Se não houver em andamento, pega o primeiro pendente
-                        const pendingSector = task.statuses.find(s => s.state === 'state-pending');
-                        if (pendingSector) {
-                            predominantSector = pendingSector.id;
-                        }
-                    }
-                }
-                
-                const scheduleDocRef = doc(db, "schedule", dayId);
-                await setDoc(scheduleDocRef, { 
-                    tasks: arrayUnion({
-                        osNumber: taskData.osNumber,
-                        clientName: taskData.clientName,
-                        sector: predominantSector
-                    }) 
-                }, { merge: true });
-            }
-        } catch (error) { 
-            console.error("Erro ao salvar na programação:", error); 
-        } 
-    } 
-});
-
-weeklySchedulePanel.addEventListener('click', async e => { 
-    if (e.target.classList.contains('delete-schedule-item-btn')) { 
-        const item = e.target.closest('.schedule-item'); 
-        const zone = e.target.closest('.drop-zone'); 
-        if (item && zone) { 
-            const taskToRemove = { 
-                osNumber: item.dataset.os, 
-                clientName: item.dataset.client,
-                sector: item.dataset.sector || null
-            }; 
-            const dayId = zone.id; 
-            const scheduleDocRef = doc(db, "schedule", dayId); 
-            try { 
-                await updateDoc(scheduleDocRef, { tasks: arrayRemove(taskToRemove) }); 
-            } catch (error) { 
-                console.error("Erro ao excluir da programação:", error); 
-            } 
-        } 
-    } 
 });
 
 // --- PESQUISA, HEADER FIXO, PDF ---

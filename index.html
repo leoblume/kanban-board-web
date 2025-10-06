@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     
+    <!-- BIBLIOTECAS PARA EXPORTAÇÃO DE PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -34,6 +35,7 @@
         </div>
     </div>
     
+    <!-- PAINEL SEMANAL MODIFICADO -->
     <div id="weekly-schedule-panel">
         <button id="hide-schedule-button" title="Ocultar Painel">▼</button>
         <div class="schedule-week">
@@ -43,37 +45,9 @@
             <div class="schedule-day"><div class="schedule-day-header">Quinta</div><div class="drop-zone" id="w1-quinta"></div></div>
             <div class="schedule-day"><div class="schedule-day-header">Sexta</div><div class="drop-zone" id="w1-sexta"></div></div>
         </div>
-        
-        <!-- LEGENDA DE CORES -->
-        <div id="schedule-color-legend" class="schedule-legend">
-            <div class="schedule-legend-title">Legenda de Cores</div>
-            <div class="schedule-legend-item">
-                <div class="schedule-legend-color" style="background-color: #bbdefb;"></div>
-                <span>Arte Final</span>
-            </div>
-            <div class="schedule-legend-item">
-                <div class="schedule-legend-color" style="background-color: #ffe0b2;"></div>
-                <span>Impressão</span>
-            </div>
-            <div class="schedule-legend-item">
-                <div class="schedule-legend-color" style="background-color: #f5f5dc;"></div>
-                <span>Acabamento</span>
-            </div>
-            <div class="schedule-legend-item">
-                <div class="schedule-legend-color" style="background-color: #f0f4c3;"></div>
-                <span>Corte</span>
-            </div>
-            <div class="schedule-legend-item">
-                <div class="schedule-legend-color" style="background-color: #d7ccc8;"></div>
-                <span>Serralheria</span>
-            </div>
-            <div class="schedule-legend-item">
-                <div class="schedule-legend-color" style="background-color: #ffccbc;"></div>
-                <span>Instalação</span>
-            </div>
-        </div>
     </div>
 
+    <!-- BOTÃO PARA MOSTRAR PAINEL QUANDO OCULTO -->
     <button id="show-schedule-button" title="Mostrar Painel de Agendamento">▲ Mostrar Agendamento</button>
 
     <script type="module" src="script.js" defer></script>
