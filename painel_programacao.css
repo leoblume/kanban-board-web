@@ -1,0 +1,62 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  color: #333;
+}
+
+.painel-title {
+  text-align: center;
+  font-size: 2em;
+  font-weight: 600;
+  color: #2b3a42;
+  margin: 20px 0;
+}
+
+.painel-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  padding: 0 20px 40px;
+}
+
+.painel-dia {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 10px;
+}
+
+.painel-dia h2 {
+  text-align: center;
+  margin: 10px 0 8px;
+  font-size: 1.2em;
+  color: #444;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 4px;
+}
+
+.painel-item {
+  border-left: 6px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.painel-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.painel-cliente {
+  font-weight: 600;
+  font-size: 1em;
+}
+
+.painel-os, .painel-setor, .painel-data {
+  font-size: 0.85em;
+  color: #555;
+}
