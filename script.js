@@ -259,7 +259,8 @@ function renderScheduleItem(task) { // Agora recebe o objeto da tarefa agendada
     statusSelect.className = 'schedule-status-select';
     statusSelect.title = "Selecionar Setor/Status";
     canonicalStatuses.forEach(s => {
-        if (s.id !== 'compras' && s.id !== 'faturamento' && s.id !== 'entrega') { // Filtra status para o dropdown
+        // Filtra status que fazem sentido para serem "agendados" para setores específicos
+        if (['arte', 'impressao', 'acabamento', 'corte', 'serralheria', 'instalacao'].includes(s.id)) { 
             const option = document.createElement('option');
             option.value = s.id;
             option.textContent = s.label;
@@ -314,7 +315,7 @@ weeklySchedulePanel.addEventListener('drop', async e => {
             if (taskDataTransfer && taskDataTransfer.osNumber && taskDataTransfer.clientName) { 
                 const dayId = dropZone.id;
                 // Ao adicionar, definimos um status inicial (ex: 'arte' ou o primeiro da lista)
-                const initialStatusId = 'arte'; 
+                const initialStatusId = 'arte'; // Definir um status inicial padrão
                 const taskToSchedule = { 
                     osNumber: taskDataTransfer.osNumber, 
                     clientName: taskDataTransfer.clientName,
@@ -381,12 +382,13 @@ weeklySchedulePanel.addEventListener('change', async e => {
                 const docSnap = await getDoc(scheduleDocRef);
                 if (docSnap.exists()) {
                     let currentTasks = docSnap.data().tasks || [];
+                    // Filtra o item antigo (que inclui o oldStatusId)
                     currentTasks = currentTasks.filter(t => 
                         !(t.osNumber === taskToUpdate.osNumber && 
                           t.clientName === taskToUpdate.clientName && 
                           t.statusId === taskToUpdate.statusId)
                     );
-                    currentTasks.push(updatedTask);
+                    currentTasks.push(updatedTask); // Adiciona o item atualizado
                     await updateDoc(scheduleDocRef, { tasks: currentTasks });
                 }
             } catch (error) {
