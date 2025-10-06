@@ -303,3 +303,48 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
 .schedule-item[data-color-id="serralheria"] { background-color: #EFEBE9 !important; border-left-color: #A1887F !important; }
 .schedule-item[data-color-id="instalacao"] { background-color: #FBE9E7 !important; border-left-color: #F4511E !important; }
 /* --- FIM DO AJUSTE --- */
+
+/* --- DESTAQUE VISUAL DOS ITENS DE PROGRAMAÇÃO --- */
+.schedule-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border: 1px solid #dee2e6;
+    border-left: 6px solid var(--primary-color); /* Aumentado */
+    border-radius: 6px;
+    font-size: 12px;
+    transition: all 0.15s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* Sombra geral suave */
+    background-color: #fff;
+}
+
+/* sombra lateral mais intensa e corida conforme o setor */
+.schedule-item[data-color-set="true"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px; /* 2x mais largo */
+    border-radius: 6px 0 0 6px;
+    background-color: currentColor;
+    box-shadow: 0 0 8px currentColor; /* sombra mais intensa e colorida */
+    opacity: 0.9;
+}
+
+/* Ajuste da cor conforme setor */
+.schedule-item[data-color-id="arte"] { color: #1E88E5; }
+.schedule-item[data-color-id="impressao"] { color: #FB8C00; }
+.schedule-item[data-color-id="acabamento"] { color: #FFD54F; }
+.schedule-item[data-color-id="corte"] { color: #9CCC65; }
+.schedule-item[data-color-id="serralheria"] { color: #A1887F; }
+.schedule-item[data-color-id="instalacao"] { color: #F4511E; }
+
+.schedule-item:hover {
+    filter: brightness(0.96);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
