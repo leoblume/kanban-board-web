@@ -55,11 +55,11 @@ body {
 
 .painel-cliente {
   font-weight: 600;
-  font-size: 1em;
+  font-size: 0.75em;
 }
 
 .painel-os, .painel-setor, .painel-data {
-  font-size: 0.85em;
+  font-size: 0.75em;
   color: #555;
 }
 
