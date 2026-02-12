@@ -9,11 +9,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     
-    <!-- BIBLIOTECAS PARA EXPORTAÇÃO DE PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+    <div id="side-notes-panel" class="side-panel-hidden">
+        <button id="hide-notes-button" title="Ocultar Notas">▶</button>
+        <div class="side-panel-content">
+            <h3>Bloco de Notas</h3>
+            <textarea id="side-notes-textarea" placeholder="Digite suas anotações gerais aqui..."></textarea>
+            <div id="notes-status">Salvo</div>
+        </div>
+    </div>
+
+    <button id="show-notes-button" title="Mostrar Notas">📝 Notas</button>
+
     <div class="kanban-board">
         <div class="board-title-header">
             <h1>Quadro de Gestão Kanban</h1>
@@ -23,13 +33,11 @@
             <button id="add-row-button" class="add-row-button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg> <span>Adicionar</span></button>
 
             <button id="open-production-panel" class="export-button" title="Abrir Painel de Produção">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M4 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.5L9.5 1H4zm4.5 1.5L13 7h-3a1 1 0 0 1-1-1V2.5z"/>
-            </svg>
-            <span>Painel Produção</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.5L9.5 1H4zm4.5 1.5L13 7h-3a1 1 0 0 1-1-1V2.5z"/>
+                </svg>
+                <span>Painel Produção</span>
             </button>
-
-
             
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="Pesquisar Cliente ou OS...">
@@ -44,7 +52,6 @@
         </div>
     </div>
     
-    <!-- PAINEL SEMANAL MODIFICADO -->
     <div id="weekly-schedule-panel">
         <button id="hide-schedule-button" title="Ocultar Painel">▼</button>
         <div class="schedule-week">
@@ -54,18 +61,8 @@
             <div class="schedule-day"><div class="schedule-day-header">Quinta</div><div class="drop-zone" id="w1-quinta"></div></div>
             <div class="schedule-day"><div class="schedule-day-header">Sexta</div><div class="drop-zone" id="w1-sexta"></div></div>
         </div>
-
-        <div class="schedule-legend">
-          <span><span class="legend-color legend-arte"></span>Arte Final</span>
-          <span><span class="legend-color legend-impressao"></span>Impressão</span>
-          <span><span class="legend-color legend-acabamento"></span>Acabamento</span>
-          <span><span class="legend-color legend-corte"></span>Corte</span>
-          <span><span class="legend-color legend-serralheria"></span>Serralheria</span>
-          <span><span class="legend-color legend-instalacao"></span>Instalação</span>
-        </div>
     </div>
 
-    <!-- BOTÃO PARA MOSTRAR PAINEL QUANDO OCULTO -->
     <button id="show-schedule-button" title="Mostrar Painel de Agendamento">▲ Mostrar Agendamento</button>
 
     <script type="module" src="script.js" defer></script>
