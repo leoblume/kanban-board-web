@@ -287,7 +287,7 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
     border-radius: 4px !important;
     max-height: 110px !important;
     overflow-y: auto !important;
-    font-size: 6px !important;
+    font-size: 8px !important;
     color: var(--text-muted) !important;
 }
 .schedule-legend li {
