@@ -156,7 +156,7 @@ body.schedule-is-hidden #show-schedule-button {
     grid-template-columns: repeat(7, 1fr); /* Mudou de 5 para 7 */
     gap: 8px; 
     flex-grow: 1; 
-    max-width: 100%; /* Aumentado para ocupar melhor o espaço */
+    max-width: 90%; /* Aumentado para ocupar melhor o espaço */
     min-width: 300px; 
 }
 
