@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, getDoc, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 const firebaseConfig = { 
     apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
@@ -17,47 +17,7 @@ const aprovadosCollection = collection(db, "tasks_aprovados");
 const kanbanBody = document.getElementById('kanban-body');
 const addRowButton = document.getElementById('add-row-button');
 
-function convertDateToSortable(dateStr) {
-    if (!dateStr || !dateStr.includes('/')) return '9999-12-31';
-    const parts = dateStr.split('/');
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2] || new Date().getFullYear();
-    return `${year}-${month}-${day}`;
-}
-/*
-const renderTasks = (tasks) => {
-    kanbanBody.innerHTML = '';
-    tasks.forEach(task => {
-        const row = document.createElement('div');
-        row.className = 'kanban-row';
-        row.id = task.id;
-        
-        // Grid CSS ajustado para 5 colunas: Handle | Info | Data | Obs | Ações
-        row.style.gridTemplateColumns = "40px 2.5fr 1fr 2fr 80px";
-
-        row.innerHTML = `
-            <div class="cell cell-drag-handle">⠿</div>
-            <div class="cell cell-client">
-                <input type="text" class="os-number-input" value="${task.osNumber || ''}" placeholder="OS">
-                <input type="text" class="client-name-input" value="${task.clientName || ''}" placeholder="Cliente">
-            </div>
-            <div class="cell">
-                <input type="text" class="status-date-input delivery-date-field" style="width: 85px" value="${task.deliveryDisplay || ''}" placeholder="dd/mm/aaaa">
-            </div>
-            <div class="cell">
-                <input type="text" class="obs-input" style="width: 90%; font-size: 12px; border: 1px solid #ddd; padding: 4px; border-radius: 4px;" 
-                value="${task.obs || ''}" placeholder="Adicionar anotação...">
-            </div>
-            <div class="cell cell-actions">
-                <button class="action-button delete-button">×</button>
-            </div>
-        `;
-        kanbanBody.appendChild(row);
-    });
-};
-*/
-
+// Renderização da tabela
 const renderTasks = (tasks) => {
     kanbanBody.innerHTML = '';
     tasks.forEach(task => {
@@ -65,7 +25,6 @@ const renderTasks = (tasks) => {
         row.className = 'kanban-row';
         row.id = task.id;
 
-        // O HTML agora não possui placeholders no campo de observação
         row.innerHTML = `
             <div class="cell cell-drag-handle" style="cursor:grab; color:#ccc;">⠿</div>
             
@@ -81,8 +40,7 @@ const renderTasks = (tasks) => {
             </div>
 
             <div class="cell">
-                <input type="text" class="obs-input" 
-                       value="${task.obs || ''}"> 
+                <input type="text" class="obs-input" value="${task.obs || ''}"> 
             </div>
 
             <div class="cell cell-actions" style="justify-content: center;">
@@ -94,66 +52,58 @@ const renderTasks = (tasks) => {
     });
 };
 
-onSnapshot(query(aprovadosCollection, orderBy("deliveryDate", "asc")), (snapshot) => {
-    const tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderTasks(tasks);
+// --- LÓGICA DE ESCUTA E ORDENAÇÃO ---
+onSnapshot(aprovadosCollection, (snapshot) => {
+    let tasksData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Ordenação: 1º Alfabética (Cliente), 2º Numérica (OS)
+    tasksData.sort((a, b) => {
+        const clienteA = (a.clientName || "").toUpperCase();
+        const clienteB = (b.clientName || "").toUpperCase();
+
+        if (clienteA < clienteB) return -1;
+        if (clienteA > clienteB) return 1;
+
+        // Se o cliente for o mesmo, ordena pela OS
+        const osA = (a.osNumber || "");
+        const osB = (b.osNumber || "");
+        return osA.localeCompare(osB, undefined, { numeric: true });
+    });
+
+    renderTasks(tasksData);
 });
 
+// Adicionar nova linha manual
 addRowButton.addEventListener('click', () => {
     addDoc(aprovadosCollection, { 
         clientName: "Novo Cliente", 
         osNumber: "00000", 
         deliveryDate: "9999-12-31", 
-        deliveryDisplay: "" 
+        deliveryDisplay: "",
+        obs: "" 
     });
 });
 
+// Eventos de Exclusão e Alteração
 kanbanBody.addEventListener('click', (e) => {
     if (e.target.classList.contains('delete-button')) {
         if(confirm("Excluir esta tarefa?")) deleteDoc(doc(db, "tasks_aprovados", e.target.closest('.kanban-row').id));
     }
 });
 
-/*
 kanbanBody.addEventListener('change', async (e) => {
     const row = e.target.closest('.kanban-row');
+    if (!row) return;
     const docRef = doc(db, "tasks_aprovados", row.id);
     const val = e.target.value;
 
+    if (e.target.classList.contains('obs-input')) await updateDoc(docRef, { obs: val });
     if (e.target.classList.contains('os-number-input')) await updateDoc(docRef, { osNumber: val });
     if (e.target.classList.contains('client-name-input')) await updateDoc(docRef, { clientName: val });
     if (e.target.classList.contains('delivery-date-field')) {
         await updateDoc(docRef, { 
             deliveryDisplay: val,
-            deliveryDate: convertDateToSortable(val)
+            deliveryDate: val.split('/').reverse().join('-') 
         });
-    }
-});
-*/
-
-
-kanbanBody.addEventListener('change', async (e) => {
-    const row = e.target.closest('.kanban-row');
-    if (!row) return;
-    
-    const docId = row.id;
-    const docRef = doc(db, "tasks_aprovados", docId);
-    const val = e.target.value;
-
-    try {
-        if (e.target.classList.contains('obs-input')) {
-            await updateDoc(docRef, { obs: val });
-        } else if (e.target.classList.contains('os-number-input')) {
-            await updateDoc(docRef, { osNumber: val });
-        } else if (e.target.classList.contains('client-name-input')) {
-            await updateDoc(docRef, { clientName: val });
-        } else if (e.target.classList.contains('delivery-date-field')) {
-            await updateDoc(docRef, { 
-                deliveryDisplay: val,
-                deliveryDate: val.split('/').reverse().join('-') 
-            });
-        }
-    } catch (err) {
-        console.error("Erro ao atualizar documento:", err);
     }
 });
