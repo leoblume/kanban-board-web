@@ -32,6 +32,10 @@ const renderTasks = (tasks) => {
         const row = document.createElement('div');
         row.className = 'kanban-row';
         row.id = task.id;
+        
+        // Grid CSS ajustado para 5 colunas: Handle | Info | Data | Obs | Ações
+        row.style.gridTemplateColumns = "40px 2.5fr 1fr 2fr 80px";
+
         row.innerHTML = `
             <div class="cell cell-drag-handle">⠿</div>
             <div class="cell cell-client">
@@ -39,7 +43,11 @@ const renderTasks = (tasks) => {
                 <input type="text" class="client-name-input" value="${task.clientName || ''}" placeholder="Cliente">
             </div>
             <div class="cell">
-                <input type="text" class="status-date-input delivery-date-field" style="width: 100px" value="${task.deliveryDisplay || ''}" placeholder="dd/mm/aaaa">
+                <input type="text" class="status-date-input delivery-date-field" style="width: 85px" value="${task.deliveryDisplay || ''}" placeholder="dd/mm/aaaa">
+            </div>
+            <div class="cell">
+                <input type="text" class="obs-input" style="width: 90%; font-size: 12px; border: 1px solid #ddd; padding: 4px; border-radius: 4px;" 
+                value="${task.obs || ''}" placeholder="Adicionar anotação...">
             </div>
             <div class="cell cell-actions">
                 <button class="action-button delete-button">×</button>
@@ -81,5 +89,23 @@ kanbanBody.addEventListener('change', async (e) => {
             deliveryDisplay: val,
             deliveryDate: convertDateToSortable(val)
         });
+    }
+});
+
+kanbanBody.addEventListener('change', async (e) => {
+    const row = e.target.closest('.kanban-row');
+    if (!row) return;
+    
+    const docId = row.id;
+    const docRef = doc(db, "tasks_aprovados", docId);
+    const val = e.target.value;
+
+    try {
+        if (e.target.classList.contains('obs-input')) {
+            await updateDoc(docRef, { obs: val });
+        }
+        // ... outros campos (osNumber, clientName, etc) já existentes no código anterior
+    } catch (err) {
+        console.error("Erro ao salvar:", err);
     }
 });
