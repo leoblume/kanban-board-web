@@ -318,7 +318,8 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
 .schedule-item[data-color-id="corte"] { background-color: #F1F8E9 !important; border-left-color: #9CCC65 !important; }
 .schedule-item[data-color-id="serralheria"] { background-color: #EFEBE9 !important; border-left-color: #A1887F !important; }
 .schedule-item[data-color-id="instalacao"] { background-color: #FBE9E7 !important; border-left-color: #F4511E !important; }
-/* --- FIM DO AJUSTE --- */
+
+
 /* --- FAIXA LATERAL MAIS LARGA E SOMBRA COLORIDA --- */
 .schedule-item {
     position: relative;
@@ -329,7 +330,7 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
     border: 1px solid #dee2e6;
     border-left: 6px solid transparent; /* base transparente */
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 10px;
     transition: all 0.2s ease-in-out;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     background-color: #fff;
