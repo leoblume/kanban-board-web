@@ -156,7 +156,7 @@ body.schedule-is-hidden #show-schedule-button {
     grid-template-columns: repeat(7, 1fr); /* Mudou de 5 para 7 */
     gap: 8px; 
     flex-grow: 1; 
-    max-width: 90%; /* Aumentado para ocupar melhor o espaço */
+    max-width: 100%; /* Aumentado para ocupar melhor o espaço */
     min-width: 300px; 
 }
 
@@ -287,7 +287,7 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
     border-radius: 4px !important;
     max-height: 110px !important;
     overflow-y: auto !important;
-    font-size: 10px !important;
+    font-size: 6px !important;
     color: var(--text-muted) !important;
 }
 .schedule-legend li {
