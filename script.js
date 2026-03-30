@@ -245,3 +245,24 @@ let currentSearchTerm = ''; let currentMatchingIndices = []; let searchResultPoi
 document.getElementById("open-production-panel")?.addEventListener("click", () => {
   window.open("painel_programacao.html", "_blank");
 });
+
+// --- LÓGICA PARA AS ANOTAÇÕES DO PAINEL SEMANAL ---
+const notesTextarea = document.getElementById('schedule-notes');
+
+// Salva as notas ao digitar (com um pequeno atraso/debounce para não sobrecarregar o Firebase)
+let notesTimeout;
+notesTextarea.addEventListener('input', () => {
+    clearTimeout(notesTimeout);
+    notesTimeout = setTimeout(async () => {
+        try {
+            await setDoc(doc(db, "schedule", "general-notes"), { text: notesTextarea.value }, { merge: true });
+        } catch (e) { console.error("Erro ao salvar notas:", e); }
+    }, 1000);
+});
+
+// Carrega as notas e escuta mudanças em tempo real
+onSnapshot(doc(db, "schedule", "general-notes"), (docSnap) => {
+    if (docSnap.exists() && document.activeElement !== notesTextarea) {
+        notesTextarea.value = docSnap.data().text || "";
+    }
+});
