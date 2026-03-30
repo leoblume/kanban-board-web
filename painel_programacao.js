@@ -34,6 +34,7 @@ const dayElements = {
     quarta: document.getElementById('quarta')?.querySelector('.painel-lista'),
     quinta: document.getElementById('quinta')?.querySelector('.painel-lista'),
     sexta: document.getElementById('sexta')?.querySelector('.painel-lista'),
+    sabado: document.getElementById('sabado')?.querySelector('.painel-lista'),
 };
 
 // Atualiza painel com dados do Firestore
@@ -82,6 +83,13 @@ onSnapshot(scheduleCollection, carregarProgramacao, (error) => {
     Object.values(dayElements).forEach(el => {
         if (el) el.innerHTML = `<p style="color: red; text-align: center;">Erro ao carregar.</p>`;
     });
+});
+// escuta para o texto de anotações no final do arquivo:
+const displayNotes = document.getElementById('display-notes');
+onSnapshot(doc(db, "schedule", "general-notes"), (docSnap) => {
+    if (docSnap.exists() && displayNotes) {
+        displayNotes.textContent = docSnap.data().text || "";
+    }
 });
 
 // Atualização visual automática (opcional, pode ser removido se não for necessário)
