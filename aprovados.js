@@ -77,6 +77,7 @@ kanbanBody.addEventListener('click', (e) => {
     }
 });
 
+/*
 kanbanBody.addEventListener('change', async (e) => {
     const row = e.target.closest('.kanban-row');
     const docRef = doc(db, "tasks_aprovados", row.id);
@@ -91,6 +92,8 @@ kanbanBody.addEventListener('change', async (e) => {
         });
     }
 });
+*/
+
 
 kanbanBody.addEventListener('change', async (e) => {
     const row = e.target.closest('.kanban-row');
@@ -103,9 +106,17 @@ kanbanBody.addEventListener('change', async (e) => {
     try {
         if (e.target.classList.contains('obs-input')) {
             await updateDoc(docRef, { obs: val });
+        } else if (e.target.classList.contains('os-number-input')) {
+            await updateDoc(docRef, { osNumber: val });
+        } else if (e.target.classList.contains('client-name-input')) {
+            await updateDoc(docRef, { clientName: val });
+        } else if (e.target.classList.contains('delivery-date-field')) {
+            await updateDoc(docRef, { 
+                deliveryDisplay: val,
+                deliveryDate: val.split('/').reverse().join('-') 
+            });
         }
-        // ... outros campos (osNumber, clientName, etc) já existentes no código anterior
     } catch (err) {
-        console.error("Erro ao salvar:", err);
+        console.error("Erro ao atualizar documento:", err);
     }
 });
