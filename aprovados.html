@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprovados / Aguardando</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Ajuste da grade para apenas 4 colunas principais */
+        .kanban-header, .kanban-row {
+            grid-template-columns: 40px 3fr 1.5fr 100px !important;
+        }
+        body { padding-bottom: 20px; } /* Sem painel semanal aqui */
+    </style>
+</head>
+<body>
+    <div class="kanban-board">
+        <div class="board-title-header">
+            <h1>Painel APROVADOS / AGUARDANDO</h1>
+            <a href="extrator_aprovados.html" class="import-button"><span>Importar PDF</span></a>
+            <button id="add-row-button" class="add-row-button"><span>Adicionar</span></button>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Pesquisar...">
+                <span id="search-counter"></span>
+            </div>
+        </div>
+        <div class="kanban-table">
+            <header class="kanban-header">
+                <div class="header-cell"></div>
+                <div class="header-cell">Cliente / OS</div>
+                <div class="header-cell" style="text-align: center;">Entrega</div>
+                <div class="header-cell" style="text-align: center;">Ações</div>
+            </header>
+            <main id="kanban-body"></main>
+        </div>
+    </div>
+    <script type="module" src="aprovados.js"></script>
+</body>
+</html>

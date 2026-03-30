@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Importar Aprovados via PDF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    #resultArea { background: #fff; padding: 16px; border-radius: 8px; margin-top: 20px; box-shadow: 0 0 10px #ccc; }
+    button { background: #6610f2; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Importar para APROVADOS</h1>
+  <a href="aprovados.html">← Voltar</a><br><br>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <button onclick="extractData()">Importar Dados</button>
+  <div id="resultArea"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
+        authDomain: "kanban-board-92ce7.firebaseapp.com",
+        projectId: "kanban-board-92ce7",
+        storageBucket: "kanban-board-92ce7.appspot.com",
+        messagingSenderId: "494809291125",
+        appId: "1:494809291125:web:17f9eefa4287d39174db3c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const collectionRef = collection(db, "tasks_aprovados");
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    window.extractData = async function() {
+        const file = document.getElementById('pdfFile').files[0];
+        if (!file) return alert("Selecione um PDF");
+
+        const resultArea = document.getElementById('resultArea');
+        resultArea.innerHTML = "Processando...";
+
+        const reader = new FileReader();
+        reader.onload = async function() {
+            const typedarray = new Uint8Array(reader.result);
+            const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                fullText += content.items.map(item => item.str).join(' ') + ' ';
+            }
+
+            const regex = /(\d{5})\s+(.*?)\s+PRO\s+\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+(\d{2}\/\d{2}\/\d{4})/g;
+            let match;
+            let count = 0;
+
+            while ((match = regex.exec(fullText)) !== null) {
+                await addDoc(collectionRef, {
+                    osNumber: match[1],
+                    clientName: match[2].trim(),
+                    deliveryDisplay: match[3],
+                    deliveryDate: match[3].split('/').reverse().join('-')
+                });
+                count++;
+            }
+            resultArea.innerHTML = `Sucesso! ${count} tarefas importadas para Aprovados.`;
+        };
+        reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>
