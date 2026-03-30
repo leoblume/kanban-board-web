@@ -25,7 +25,7 @@ function convertDateToSortable(dateStr) {
     const year = parts[2] || new Date().getFullYear();
     return `${year}-${month}-${day}`;
 }
-
+/*
 const renderTasks = (tasks) => {
     kanbanBody.innerHTML = '';
     tasks.forEach(task => {
@@ -51,6 +51,43 @@ const renderTasks = (tasks) => {
             </div>
             <div class="cell cell-actions">
                 <button class="action-button delete-button">×</button>
+            </div>
+        `;
+        kanbanBody.appendChild(row);
+    });
+};
+*/
+
+const renderTasks = (tasks) => {
+    kanbanBody.innerHTML = '';
+    tasks.forEach(task => {
+        const row = document.createElement('div');
+        row.className = 'kanban-row';
+        row.id = task.id;
+
+        // O HTML agora não possui placeholders no campo de observação
+        row.innerHTML = `
+            <div class="cell cell-drag-handle" style="cursor:grab; color:#ccc;">⠿</div>
+            
+            <div class="cell cell-client">
+                <input type="text" class="os-number-input" value="${task.osNumber || ''}" style="font-weight:bold;">
+                <input type="text" class="client-name-input" value="${task.clientName || ''}" style="color:#666;">
+            </div>
+
+            <div class="cell" style="text-align: center;">
+                <input type="text" class="status-date-input delivery-date-field" 
+                       style="width: 85px; text-align: center;" 
+                       value="${task.deliveryDisplay || ''}">
+            </div>
+
+            <div class="cell">
+                <input type="text" class="obs-input" 
+                       value="${task.obs || ''}"> 
+            </div>
+
+            <div class="cell cell-actions" style="justify-content: center;">
+                <button class="action-button delete-button" 
+                        style="color:#dc3545; font-size: 24px; background:none; border:none; cursor:pointer;">&times;</button>
             </div>
         `;
         kanbanBody.appendChild(row);
