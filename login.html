@@ -1,0 +1,35 @@
+<!-- login.html -->
+<div id="auth-container">
+    <h2>Acesso ao Kanban</h2>
+    <input type="email" id="email" placeholder="E-mail">
+    <input type="password" id="password" placeholder="Senha">
+    <button id="btn-login">Entrar</button>
+    <button id="btn-register">Cadastrar Novo Usuário</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
+    const firebaseConfig = { /* SUA CONFIGURAÇÃO */ };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Login
+    document.getElementById('btn-login').addEventListener('click', () => {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        signInWithEmailAndPassword(auth, email, pass)
+            .then(() => window.location.href = 'index.html')
+            .catch(err => alert("Erro: " + err.message));
+    });
+
+    // Cadastro
+    document.getElementById('btn-register').addEventListener('click', () => {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        createUserWithEmailAndPassword(auth, email, pass)
+            .then(() => alert("Usuário criado! Agora faça login."))
+            .catch(err => alert("Erro ao cadastrar: " + err.message));
+    });
+</script>
