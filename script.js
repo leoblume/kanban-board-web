@@ -246,6 +246,10 @@ document.getElementById("open-production-panel")?.addEventListener("click", () =
   window.open("painel_programacao.html", "_blank");
 });
 
+document.getElementById("open-tools-panel")?.addEventListener("click", () => {
+  window.open("ferramentas.html", "_blank");
+});
+
 // --- LÓGICA PARA AS ANOTAÇÕES DO PAINEL SEMANAL ---
 const notesTextarea = document.getElementById('schedule-notes');
 
